@@ -9,3 +9,4 @@ ALTER TABLE users
 ADD COLUMN email TEXT NOT NULL UNIQUE,
 DROP COLUMN username,
 DROP COLUMN password;
+
