@@ -52,7 +52,7 @@ func isValidString(word string) (bool, error) {
 			return false, fmt.Errorf("invalid whitespace in username or password")
 		}
 		if !isValidRune(r) {
-			return false, fmt.Errorf("invalid character in username of password")
+			return false, fmt.Errorf("invalid character in username or password")
 		}
 	}
 	return true, nil

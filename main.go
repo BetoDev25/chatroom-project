@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/BetoDev25/chatroom-project/internal/database"
+	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -42,6 +43,41 @@ type apiConfig struct {
 	db *database.Queries
 }
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	// Allow all origins for development - restrict this in production
+	//TO-DO: Figure out what this means
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		username = "guest"
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &Client{
+		hub:      hub,
+		conn:     conn,
+		send:     make(chan []byte, 256),
+		username: username,
+	}
+	client.hub.register <- client
+
+	//read and write pumps in separate goroutines.
+	go client.writePump()
+	go client.readPump()
+}
+
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
@@ -54,6 +90,11 @@ func main() {
 	}
 	dbQueries := database.New(db)
 
+	//setup Hub
+	hub := newHub()
+	go hub.run()
+
+	//setup Routes
 	mux := http.NewServeMux()
 	apiCfg := apiConfig{
 		db: dbQueries,
@@ -69,6 +110,11 @@ func main() {
 		fmt.Fprintf(w, "Hi")
 	})
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUser)
+	//websocket route
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(hub, w, r)
+	})
 
 	fmt.Println("Server is running on port" + server.Addr)
 

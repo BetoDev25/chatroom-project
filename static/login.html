@@ -1,0 +1,12 @@
+<h1>Login</h1>
+<input type="text" id="username" placeholder="username" oninput="validateUsername(this.value)">
+<div style="height: 10px;"></div>
+
+<input type="password" id="password" placeholder="password" oninput="validatePassword(this.value)">
+<div style="height: 10px;"></div>
+
+<button onclick="signUp()">Log in</button>
+<div id="message" style="margin-top: 10px; color: #333;"></div>
+<p style="margin-top: 10px;">
+    <a href="#" onclick="window.parent.loadPanel('signup.html'); return false;">create new user</a>
+</p>
