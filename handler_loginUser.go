@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"github.com/BetoDev25/chatroom-project/internal/auth"
-	"github.com/BetoDev25/chatroom-project/internal/database"
+	//"github.com/BetoDev25/chatroom-project/internal/database"
 )
 
-func (cfg *apiCfg) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type params struct {
 		Username string `json:"username"`
 		Password string `json:"password`
@@ -32,7 +35,7 @@ func (cfg *apiCfg) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"username": user.Username
-		"message": "Login successful",
+		"username": user.Username,
+		"message":  "Login successful",
 	})
 }
