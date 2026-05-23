@@ -1,12 +1,60 @@
 <h1>Login</h1>
-<input type="text" id="username" placeholder="username" oninput="validateUsername(this.value)">
+<input type="text" id="username" placeholder="username">
 <div style="height: 10px;"></div>
 
-<input type="password" id="password" placeholder="password" oninput="validatePassword(this.value)">
+<input type="password" id="password" placeholder="password">
 <div style="height: 10px;"></div>
 
-<button onclick="signUp()">Log in</button>
+<button onclick="login()">Log in</button>
 <div id="message" style="margin-top: 10px; color: #333;"></div>
 <p style="margin-top: 10px;">
     <a href="#" onclick="window.parent.loadPanel('signup.html'); return false;">create new user</a>
 </p>
+
+<script>
+    async function login() {
+        const usernameVal = document.getElementById('username').value;
+        const passwordVal = document.getElementById('password').value;
+        const messageDiv = document.getElementById('message');
+
+        if (!usernameVal || !passwordVal) {
+            messageDiv.style.color = 'red';
+            messageDiv.textContent = 'Please enter both username and password';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: usernameVal,
+                    password: passwordVal
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setTimeout(() => {
+                    if (window.parent && window.parent.loadPanel) {
+                        window.parent.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
+                    } else if (window.loadPanel) {
+                        window.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
+                    } else {
+                        // Fallback - try to find the loadPanel function
+                        top.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
+                    }
+                }, 1000);
+            } else {
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'username or password incorrect';
+            }
+        } catch (error) {
+            messageDiv.style.color = 'red';
+            messageDiv.textContent = 'Error connecting to server';
+        }
+    }
+</script>

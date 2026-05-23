@@ -3,25 +3,32 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
+	"errors"
+	"log"
 	"net/http"
 	"time"
+
+	"github.com/BetoDev25/chatroom-project/internal/cookies"
 )
 
 func (cfg *apiConfig) cookieHandler(w http.ResponseWriter, r *http.Request) {
-	sessionCookie, err := r.Cookie("session_token")
+	value, err := cookies.Read(r, "session_token")
 	if err != nil {
-		if err == http.ErrNoCookie {
-			fmt.Fprintf(w, "No session_token cookie found")
-			return
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			respondWithError(w, http.StatusBadRequest, "cookie not found")
+		case errors.Is(err, cookies.ErrInvalidValue):
+			respondWithError(w, http.StatusBadRequest, "invalid cookie")
+		default:
+			log.Println(err)
+			respondWithError(w, http.StatusInternalServerError, "Error reading cookie")
 		}
-		respondWithError(w, http.StatusInternalServerError, "Error reading cookie")
 		return
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
 		"message":      "Login successful",
-		"cookie_value": sessionCookie.Value,
+		"cookie_value": value,
 	})
 }
 
@@ -38,7 +45,11 @@ func (cfg *apiConfig) setCookieHandler(w http.ResponseWriter, r *http.Request) {
 		Secure:   false,                //temporary for localhost testing
 		SameSite: http.SameSiteLaxMode, //temporary for localhost testing
 	}
-	http.SetCookie(w, sessionCookie)
+	err := cookies.Write(w, *sessionCookie)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "server error")
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
 		"message":      "Cookie set successfully",

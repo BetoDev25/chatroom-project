@@ -44,10 +44,25 @@
                 .then(response => response.text())
                 .then(html => {
                     document.getElementById('panel').innerHTML = html;
+                    
+                    // Find and execute all script tags in the loaded HTML
+                    const panel = document.getElementById('panel');
+                    const scripts = panel.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        // Copy the content
+                        newScript.textContent = oldScript.textContent;
+                        // Copy any attributes (like src, type, etc.)
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                        }
+                        // Replace the old script with the new one
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
                 })
                 .catch(error => {
                     console.error('Error loading panel:', error);
-                    document.getElementById('panel').innerHTML = '<cp style="color:red">Failed to loadpanel</p>';
+                    document.getElementById('panel').innerHTML = '<p style="color:red">Failed to load panel</p>';
                 });
         }
 
