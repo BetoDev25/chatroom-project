@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"encoding/hex"
+	"math/rand"
+
 	"github.com/alexedwards/argon2id"
 )
 
@@ -18,4 +21,10 @@ func CheckPasswordHash(password, hash string) (bool, error) {
 		return false, err
 	}
 	return match, nil
+}
+
+func GenerateSessionToken() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
 }

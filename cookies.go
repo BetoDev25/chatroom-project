@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"log"
 	"net/http"
@@ -70,10 +68,4 @@ func (cfg *apiConfig) deleteCookieHandler(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusOK, map[string]string{
 		"message": "Cookie deleted",
 	})
-}
-
-func generateSessionToken() string {
-	bytes := make([]byte, 32)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
 }
