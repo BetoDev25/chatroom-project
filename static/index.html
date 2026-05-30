@@ -11,17 +11,13 @@
         .chat-section {
             flex: 3;
         }
-        .dynamic-panel {
-            flex: 1;
-            border-left: 1px solid #ccc;
-            padding-left: 20px;
-        }
         #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
         .system { color: #888; font-style: italic; }
     </style>
 </head>
 <body>
     <h1>Go Chat with Rooms</h1>
+    <h2 id="welcome"></h2>
     <div class="container">
         <div class="chat-section">
             <div>
@@ -33,38 +29,8 @@
                 <input type="text" id="message" placeholder="Message" onkeypress="if(event.key==='Enter')sendMessage()">
                 <button onclick="sendMessage()">Send</button>
             </div>
-
+    <script src="/static/js/api.js"></script>
     <script>
-        // Logic to load any HTML file in the dynamic panel
-        function loadPanel(htmlFile) {
-            fetch(htmlFile)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('panel').innerHTML = html;
-                    
-                    // Find and execute all script tags in the loaded HTML
-                    const panel = document.getElementById('panel');
-                    const scripts = panel.querySelectorAll('script');
-                    scripts.forEach(oldScript => {
-                        const newScript = document.createElement('script');
-                        // Copy the content
-                        newScript.textContent = oldScript.textContent;
-                        // Copy any attributes (like src, type, etc.)
-                        if (oldScript.src) {
-                            newScript.src = oldScript.src;
-                        }
-                        // Replace the old script with the new one
-                        oldScript.parentNode.replaceChild(newScript, oldScript);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading panel:', error);
-                    document.getElementById('panel').innerHTML = '<p style="color:red">Failed to load panel</p>';
-                });
-        }
-
-        loadPanel('signup.html')
-
         let ws;
 
         function connect() {

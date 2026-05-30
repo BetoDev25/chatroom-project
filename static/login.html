@@ -8,9 +8,10 @@
 <button onclick="login()">Log in</button>
 <div id="message" style="margin-top: 10px; color: #333;"></div>
 <p style="margin-top: 10px;">
-    <a href="#" onclick="window.parent.loadPanel('signup.html'); return false;">create new user</a>
+    <a href="/signup.html">create new user</a>
 </p>
 
+<script src="/static/js/api.js"></script>
 <script>
     async function login() {
         const usernameVal = document.getElementById('username').value;
@@ -39,14 +40,7 @@
 
             if (response.ok) {
                 setTimeout(() => {
-                    if (window.parent && window.parent.loadPanel) {
-                        window.parent.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
-                    } else if (window.loadPanel) {
-                        window.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
-                    } else {
-                        // Fallback - try to find the loadPanel function
-                        top.loadPanel(`hello.html?username=${encodeURIComponent(usernameVal)}`);
-                    }
+                    window.location.href = '/index.html';
                 }, 1000);
             } else {
                 messageDiv.style.color = 'red';

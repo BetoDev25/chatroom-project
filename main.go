@@ -105,13 +105,14 @@ func main() {
 	}
 
 	// API routes
-	mux.Handle("/", http.FileServer(http.Dir("./static")))
+	mux.Handle("/", apiCfg.middlewareFunc(http.FileServer(http.Dir("./static"))))
 	mux.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hi")
 	})
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUser)
 	mux.HandleFunc("POST /api/cookie", apiCfg.setCookieHandler)
+	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 
 	//websocket route
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

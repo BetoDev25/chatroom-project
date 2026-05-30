@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/BetoDev25/chatroom-project/internal/auth"
 	"github.com/BetoDev25/chatroom-project/internal/cookies"
 )
 
@@ -34,7 +35,7 @@ func (cfg *apiConfig) setCookieHandler(w http.ResponseWriter, r *http.Request) {
 	//Secure session cookie
 	sessionCookie := &http.Cookie{
 		Name:     "session_token",
-		Value:    generateSessionToken(),
+		Value:    auth.GenerateSessionToken(),
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 		MaxAge:   86400,
