@@ -12,3 +12,5 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.location.href = "/login.html";
     }
 });
+
+window.currentUser = user;

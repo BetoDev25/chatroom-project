@@ -11,9 +11,10 @@
     <a href="/signup.html">create new user</a>
 </p>
 
-<script src="/static/js/api.js"></script>
 <script>
+    console.log('Login function defined:', typeof login);
     async function login() {
+        console.log('1. Login function started'); //debug
         const usernameVal = document.getElementById('username').value;
         const passwordVal = document.getElementById('password').value;
         const messageDiv = document.getElementById('message');
@@ -25,6 +26,7 @@
         }
 
         try {
+            console.log('2. About to fetch /api/login'); //debug
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
@@ -36,13 +38,19 @@
                 })
             });
 
+            console.log('3. Response received, status:', response.status); //debug
             const data = await response.json();
+            console.log('4. Response data:', data); //debug
 
             if (response.ok) {
+                console.log('5. Login successful, will redirect in 1 second'); //debug
                 setTimeout(() => {
+                    console.log('6. Current URL before redirect:', window.location.href); //debug
                     window.location.href = '/index.html';
+                    console.log('7. After setting window.location.href');
                 }, 1000);
             } else {
+                console.log('5. Login failed'); //debug
                 messageDiv.style.color = 'red';
                 messageDiv.textContent = 'username or password incorrect';
             }

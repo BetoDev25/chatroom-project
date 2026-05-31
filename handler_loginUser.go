@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -41,20 +42,26 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	session, err := cfg.db.CreateSession(r.Context(), database.CreateSessionParams{
 		Token:     token,
 		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(8 * time.Hour),
+		ExpiresAt: time.Now().Add(1 * time.Minute),
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create session")
 		return
 	}
 
+	maxAge := int(time.Until(session.ExpiresAt).Seconds())
+	if maxAge <= 0 {
+		maxAge = 60
+	}
+
 	//Secure session cookie
 	sessionCookie := &http.Cookie{
-		Name:     "session_token",
-		Value:    token,
-		Path:     "/",
-		Expires:  session.ExpiresAt,
-		MaxAge:   int(time.Until(session.ExpiresAt).Seconds()),
+		Name:    "session_token",
+		Value:   token,
+		Path:    "/",
+		Expires: session.ExpiresAt,
+		MaxAge:  maxAge,
+		//MaxAge:   int(time.Until(session.ExpiresAt).Seconds()),
 		HttpOnly: true,
 		//Domain: temporarily excluded for localhost testing
 		Secure:   false,                //temporary for localhost testing
@@ -62,6 +69,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 	err = cookies.Write(w, *sessionCookie)
 	if err != nil {
+		log.Printf("Error setting cookie: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "server error")
 		return
 	}

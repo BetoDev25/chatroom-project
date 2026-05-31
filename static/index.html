@@ -34,8 +34,9 @@
         let ws;
 
         function connect() {
-            const username = document.getElementById('username').value || 'anonymous';
-            ws = new WebSocket(`ws://localhost:8080/ws?username=${username}`);
+            //const username = document.getElementById('username').value || 'anonymous';
+            if (!currentUser) return;
+            ws = new WebSocket(`ws://localhost:8080/ws?username=${currentUser.username}`);
 
             ws.onmessage = function(event) {
                 const msg = JSON.parse(event.data);
@@ -60,6 +61,15 @@
             ws.send(JSON.stringify({type: 'message', content: content}));
             document.getElementById('message').value = '';
         }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const response = await fetch('/api/me');
+            if (response.ok) {
+                const user = await response.json();
+                currentUser = user;
+                connect();
+            }
+        });
     </script>
 </body>
 </html>

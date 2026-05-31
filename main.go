@@ -105,7 +105,8 @@ func main() {
 	}
 
 	// API routes
-	mux.Handle("/", apiCfg.middlewareFunc(http.FileServer(http.Dir("./static"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
 	mux.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hi")
 	})
@@ -118,6 +119,8 @@ func main() {
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
+
+	mux.Handle("/", apiCfg.middlewareFunc(http.FileServer(http.Dir("./static"))))
 
 	fmt.Println("Server is running on port" + server.Addr)
 
