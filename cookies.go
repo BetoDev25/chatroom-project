@@ -10,6 +10,9 @@ import (
 	"github.com/BetoDev25/chatroom-project/internal/cookies"
 )
 
+// This file is becoming deprecated and will most likely be deleted soon, as internal/cookies/cookies.go is
+// handling everything now.
+
 func (cfg *apiConfig) cookieHandler(w http.ResponseWriter, r *http.Request) {
 	value, err := cookies.Read(r, "session_token")
 	if err != nil {

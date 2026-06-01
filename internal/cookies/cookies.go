@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"time"
 )
 
 var (
@@ -36,4 +37,14 @@ func Read(r *http.Request, name string) (string, error) {
 	}
 
 	return string(value), nil
+}
+
+func DeleteCookie(name string) *http.Cookie {
+	return &http.Cookie{
+		Name:    name,
+		Value:   "",
+		Path:    "/",
+		Expires: time.Unix(0, 0),
+		MaxAge:  -1,
+	}
 }

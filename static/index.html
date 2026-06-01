@@ -11,11 +11,12 @@
         .chat-section {
             flex: 3;
         }
-        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        #messages { height: 300px; width: 50%; margin: 0; box-sizing: border-box; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
         .system { color: #888; font-style: italic; }
     </style>
 </head>
 <body>
+    <button onclick="logout()" style="position: fixed; top: 10px; right: 10px; padding: 8px 16px;">Logout</button>
     <h1>Go Chat with Rooms</h1>
     <h2 id="welcome"></h2>
     <div class="container">
@@ -58,8 +59,23 @@
 
         function sendMessage() {
             const content = document.getElementById('message').value;
+            if (content == "") {
+                return
+            }
             ws.send(JSON.stringify({type: 'message', content: content}));
             document.getElementById('message').value = '';
+        }
+
+        async function logout() {
+            const response = await fetch('api/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                //window.location.href = '/login.html';
+                window.location.reload()
+            }
         }
 
         document.addEventListener("DOMContentLoaded", async () => {

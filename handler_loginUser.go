@@ -9,7 +9,6 @@ import (
 	"github.com/BetoDev25/chatroom-project/internal/auth"
 	"github.com/BetoDev25/chatroom-project/internal/cookies"
 	"github.com/BetoDev25/chatroom-project/internal/database"
-	//"github.com/BetoDev25/chatroom-project/internal/database"
 )
 
 func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +41,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	session, err := cfg.db.CreateSession(r.Context(), database.CreateSessionParams{
 		Token:     token,
 		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(1 * time.Minute),
+		ExpiresAt: time.Now().Add(5 * time.Hour),
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create session")
