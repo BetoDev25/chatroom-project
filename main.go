@@ -115,6 +115,7 @@ func main() {
 	mux.HandleFunc("POST /api/cookie", apiCfg.setCookieHandler)
 	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 	mux.HandleFunc("POST /api/logout", apiCfg.handlerLogoutUser)
+	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
 
 	//websocket route
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

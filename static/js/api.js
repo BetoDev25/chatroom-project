@@ -8,9 +8,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const user = await fetchCurrentUser();
     if (user) {
         document.querySelector("#welcome").textContent = `Welcome, ${user.username}!`;
+        window.currentUser = user;
     } else {
         window.location.href = "/login.html";
     }
 });
-
-window.currentUser = user;

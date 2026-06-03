@@ -52,9 +52,17 @@
             };
         }
 
-        function joinRoom() {
-            const room = document.getElementById('room').value;
-            ws.send(JSON.stringify({type: 'join', room: room}));
+        async function joinRoom() {
+            const roomName = document.getElementById('room').value;
+
+            const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`);
+
+            if (response.status == 404 || response.status == 401) {
+                alert('Room does not exist');
+                return;
+            }
+
+            ws.send(JSON.stringify({type: 'join', room: roomName}));
         }
 
         function sendMessage() {

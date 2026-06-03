@@ -10,6 +10,21 @@ import (
 	"github.com/google/uuid"
 )
 
+type Message struct {
+	MessageID   uuid.UUID
+	RoomID      uuid.UUID
+	UserID      uuid.UUID
+	Content     string
+	MessageType string
+	SentAt      time.Time
+}
+
+type Room struct {
+	RoomID    uuid.UUID
+	RoomName  string
+	CreatedAt time.Time
+}
+
 type Session struct {
 	Token     string
 	CreatedAt time.Time
