@@ -19,7 +19,5 @@ func (cfg *apiConfig) handlerGetRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{
-		"name": room.RoomName,
-	})
+	respondWithJSON(w, http.StatusOK, room)
 }

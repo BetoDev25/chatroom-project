@@ -20,7 +20,7 @@ func (cfg *apiConfig) handlerCreateMessage(w http.ResponseWriter, r *http.Reques
 	input := params{}
 	err := decoder.Decode(&input)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode input")
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode input")
 		return
 	}
 

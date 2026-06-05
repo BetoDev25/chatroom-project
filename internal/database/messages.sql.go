@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -51,22 +52,41 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 }
 
 const getRecentMessages = `-- name: GetRecentMessages :many
-SELECT message_id, room_id, user_id, content, message_type, sent_at
+SELECT 
+    message.message_id, message.room_id, message.user_id, message.content, message.message_type, message.sent_at,
+    users.username
 FROM message
-WHERE room_id = $1
-ORDER BY sent_at ASC
-LIMIT 50
+JOIN users ON message.user_id = users.id
+WHERE message.room_id = $1
+ORDER BY message.sent_at ASC
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetRecentMessages(ctx context.Context, roomID uuid.UUID) ([]Message, error) {
-	rows, err := q.db.QueryContext(ctx, getRecentMessages, roomID)
+type GetRecentMessagesParams struct {
+	RoomID uuid.UUID
+	Limit  int32
+	Offset int32
+}
+
+type GetRecentMessagesRow struct {
+	MessageID   uuid.UUID
+	RoomID      uuid.UUID
+	UserID      uuid.UUID
+	Content     string
+	MessageType string
+	SentAt      time.Time
+	Username    string
+}
+
+func (q *Queries) GetRecentMessages(ctx context.Context, arg GetRecentMessagesParams) ([]GetRecentMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentMessages, arg.RoomID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Message
+	var items []GetRecentMessagesRow
 	for rows.Next() {
-		var i Message
+		var i GetRecentMessagesRow
 		if err := rows.Scan(
 			&i.MessageID,
 			&i.RoomID,
@@ -74,6 +94,7 @@ func (q *Queries) GetRecentMessages(ctx context.Context, roomID uuid.UUID) ([]Me
 			&i.Content,
 			&i.MessageType,
 			&i.SentAt,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}

@@ -23,7 +23,7 @@
         <div class="chat-section">
             <div>
                 <input type="text" id="room" placeholder="Room name">
-                <button onclick="joinRoom()">Join Room</button>
+                <button onclick="joinRoom(false)">Join Room</button>
             </div>
             <div id="messages"></div>
             <div>
@@ -52,7 +52,8 @@
             };
         }
 
-        async function joinRoom() {
+        let currentRoom = null;
+        async function joinRoom(skipArchive = false) {
             const roomName = document.getElementById('room').value;
 
             const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`);
@@ -62,7 +63,29 @@
                 return;
             }
 
+            currentRoom = await response.json();
+
+            localStorage.setItem('lastRoom', roomName);
+            localStorage.setItem('lastRoomData', JSON.stringify(currentRoom));
+
+            await loadMessages(true);
+
             ws.send(JSON.stringify({type: 'join', room: roomName}));
+
+            //archive join message
+            if (!skipArchive) {
+                await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        room_id: currentRoom.RoomID,
+                        user_id: currentUser.id,
+                        content: `${currentUser.username} joined the room`,
+                    })
+                }).catch(err => {
+                    console.error('Failed to archive join message:', err);
+                });
+            }
         }
 
         function sendMessage() {
@@ -72,7 +95,59 @@
             }
             ws.send(JSON.stringify({type: 'message', content: content}));
             document.getElementById('message').value = '';
+
+            //archive message in history
+            fetch('/api/messages', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    room_id: currentRoom.RoomID,
+                    user_id: currentUser.id,
+                    content: content
+                })
+            }).catch(err => {
+                console.error('Failed to archive message:', err);
+            })
         }
+
+        let currentPage = 1;
+        const messagesPerPage = 50;
+        async function loadMessages(resetPage = true) {
+            if (resetPage) {
+                currentPage = 1;
+                document.getElementById('messages').innerHTML = '';
+            }
+
+            const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
+
+            if (!response.ok) {
+                console.error('Failed to load messages');
+                return
+            }
+
+            const messages = await response.json();
+
+            //Display messages
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                if (msg.message_type === 'system') {
+                    div.className = 'system';
+                    div.textContent = msg.content;
+                } else {
+                    div.textContent = `${msg.Username}: ${msg.Content}`;
+                }
+                document.getElementById('messages').appendChild(div);
+            });
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+            currentPage++
+        }
+        //load when scrolling
+        document.getElementById('messages').addEventListener('scroll', function() {
+            if (this.scrollTop === 0) {
+                loadMessages(false);
+            }
+        });
 
         async function logout() {
             const response = await fetch('api/logout', {
@@ -92,6 +167,28 @@
                 const user = await response.json();
                 currentUser = user;
                 connect();
+
+                const lastRoomName = localStorage.getItem('lastRoom');
+                
+                if (lastRoomName) {
+                    document.getElementById('room').value = lastRoomName;
+                    
+                    // Verify room still exists via API
+                    const roomResponse = await fetch(`/api/rooms/${encodeURIComponent(lastRoomName)}`);
+                    
+                    if (roomResponse.ok) {
+                        currentRoom = await roomResponse.json();
+                        await loadMessages(true);
+                        ws.send(JSON.stringify({type: 'join', room: lastRoomName}));
+                        // Don't archive join message on refresh
+                    } else {
+                        // Room was deleted, clear localStorage
+                        localStorage.removeItem('lastRoom');
+                        localStorage.removeItem('lastRoomData');
+                    }
+                }
+            } else {
+                window.location.href = "/login.html";
             }
         });
     </script>

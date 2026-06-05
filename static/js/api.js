@@ -1,7 +1,10 @@
+let currentUser = null;
+
 async function fetchCurrentUser() {
     const res = await fetch("/api/me", { credentials: "include" });
     if (!res.ok) return null;
-    return await res.json();
+    currentUser = await res.json();
+    return currentUser;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

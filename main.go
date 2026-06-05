@@ -116,6 +116,8 @@ func main() {
 	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 	mux.HandleFunc("POST /api/logout", apiCfg.handlerLogoutUser)
 	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
+	mux.HandleFunc("POST /api/messages", apiCfg.handlerCreateMessage)
+	mux.HandleFunc("GET /api/messages/{roomID}", apiCfg.handlerGetMessages)
 
 	//websocket route
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

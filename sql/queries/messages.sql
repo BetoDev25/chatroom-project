@@ -11,9 +11,12 @@ VALUES (
 RETURNING *;
 
 -- name: GetRecentMessages :many
-SELECT *
+SELECT 
+    message.*,
+    users.username
 FROM message
-WHERE room_id = $1
-ORDER BY sent_at ASC
-LIMIT 50;
+JOIN users ON message.user_id = users.id
+WHERE message.room_id = $1
+ORDER BY message.sent_at ASC
+LIMIT $2 OFFSET $3;
 
