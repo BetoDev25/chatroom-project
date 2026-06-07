@@ -21,6 +21,7 @@ type Message struct {
 
 type Room struct {
 	RoomID    uuid.UUID
+	OwnerID   uuid.UUID
 	RoomName  string
 	CreatedAt time.Time
 }

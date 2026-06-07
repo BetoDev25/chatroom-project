@@ -7,27 +7,49 @@ package database
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createRoom = `-- name: CreateRoom :one
-INSERT INTO rooms (room_id, room_name, created_at)
+INSERT INTO rooms (room_id, owner_id, room_name, created_at)
 VALUES (
 	gen_random_uuid(),
     $1,
+	$2,
 	NOW()
 )
-RETURNING room_id, room_name, created_at
+RETURNING room_id, owner_id, room_name, created_at
 `
 
-func (q *Queries) CreateRoom(ctx context.Context, roomName string) (Room, error) {
-	row := q.db.QueryRowContext(ctx, createRoom, roomName)
+type CreateRoomParams struct {
+	OwnerID  uuid.UUID
+	RoomName string
+}
+
+func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error) {
+	row := q.db.QueryRowContext(ctx, createRoom, arg.OwnerID, arg.RoomName)
 	var i Room
-	err := row.Scan(&i.RoomID, &i.RoomName, &i.CreatedAt)
+	err := row.Scan(
+		&i.RoomID,
+		&i.OwnerID,
+		&i.RoomName,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
+const deleteRoom = `-- name: DeleteRoom :exec
+DELETE FROM rooms WHERE room_id = $1
+`
+
+func (q *Queries) DeleteRoom(ctx context.Context, roomID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteRoom, roomID)
+	return err
+}
+
 const getRoomByName = `-- name: GetRoomByName :one
-SELECT room_id, room_name, created_at
+SELECT room_id, owner_id, room_name, created_at
 FROM rooms
 WHERE room_name = $1
 `
@@ -35,6 +57,11 @@ WHERE room_name = $1
 func (q *Queries) GetRoomByName(ctx context.Context, roomName string) (Room, error) {
 	row := q.db.QueryRowContext(ctx, getRoomByName, roomName)
 	var i Room
-	err := row.Scan(&i.RoomID, &i.RoomName, &i.CreatedAt)
+	err := row.Scan(
+		&i.RoomID,
+		&i.OwnerID,
+		&i.RoomName,
+		&i.CreatedAt,
+	)
 	return i, err
 }

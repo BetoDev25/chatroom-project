@@ -7,13 +7,12 @@ import (
 )
 
 /*
-	Username should be 4-20 characters long
-	Contain no whitespace or invalid character
+Username should be 4-20 characters long
+Contain no whitespace or invalid character
 
-	Password should be 8-40 characters long
-	Contain no whitespace or invalid character
-	Contain at least 1 number
-
+Password should be 8-40 characters long
+Contain no whitespace or invalid character
+Contain at least 1 number
 */
 func ValidateUsername(username string) (bool, error) {
 	if len(username) < 4 {
@@ -23,6 +22,16 @@ func ValidateUsername(username string) (bool, error) {
 	}
 
 	return isValidString(username)
+}
+
+func ValidateRoomName(roomname string) (bool, error) {
+	if len(roomname) < 3 {
+		return false, fmt.Errorf("roomname must be at least 3 characters long")
+	} else if len(roomname) > 25 {
+		return false, fmt.Errorf("roomname cannot exceed 25 characters")
+	}
+
+	return isValidString(roomname)
 }
 
 func ValidatePassword(password string) (bool, error) {

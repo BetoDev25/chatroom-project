@@ -115,6 +115,8 @@ func main() {
 	mux.HandleFunc("POST /api/cookie", apiCfg.setCookieHandler)
 	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 	mux.HandleFunc("POST /api/logout", apiCfg.handlerLogoutUser)
+	mux.Handle("POST /api/rooms/{roomName}", apiCfg.middlewareFunc(http.HandlerFunc(apiCfg.handlerCreateRoom)))
+	mux.Handle("DELETE /api/rooms/{roomName}", apiCfg.middlewareFunc(http.HandlerFunc(apiCfg.handlerDeleteRoom)))
 	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
 	mux.HandleFunc("POST /api/messages", apiCfg.handlerCreateMessage)
 	mux.HandleFunc("GET /api/messages/{roomID}", apiCfg.handlerGetMessages)

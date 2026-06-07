@@ -1,6 +1,7 @@
 -- +goose Up
 CREATE TABLE rooms (
     room_id UUID PRIMARY KEY,
+    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
     room_name TEXT NOT NULL UNIQUE,
 	created_at TIMESTAMP NOT NULL
 );

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -31,6 +32,18 @@ func (cfg *apiConfig) middlewareFunc(next http.Handler) http.Handler {
 			http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 			return
 		}
+
+		//Get user_id
+		user, err := cfg.db.GetUserByCookie(r.Context(), sessionToken)
+		if err != nil {
+			http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+			return
+		}
+
+		//Add user info to context
+		ctx := context.WithValue(r.Context(), "user_id", user.ID)
+		ctx = context.WithValue(ctx, "username", user.Username)
+
 		next.ServeHTTP(w, r)
 	})
 }
