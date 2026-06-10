@@ -41,11 +41,15 @@ func (cfg *apiConfig) handlerGetMessages(w http.ResponseWriter, r *http.Request)
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			respondWithError(w, http.StatusNotFound, "messages not found")
+			respondWithJSON(w, http.StatusOK, []interface{}{})
 		} else {
 			respondWithError(w, http.StatusUnauthorized, "could not find room")
 		}
 		return
+	}
+
+	if messages == nil {
+		messages = []database.GetRecentMessagesRow{}
 	}
 
 	respondWithJSON(w, http.StatusOK, messages)

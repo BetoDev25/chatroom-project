@@ -6,11 +6,18 @@ import (
 )
 
 type RoomRequest struct {
-	client *Client
-	room   string
+	client        *Client
+	room          string
+	skipBroadcast bool
 }
 
-//Hub maintains active clients and broadcasts messages to rooms
+type JoinMessage struct {
+	Type          string `json:"type"`
+	Room          string `json:"room"`
+	SkipBroadcast bool   `json:"skipBroadcast,omitempty"`
+}
+
+// Hub maintains active clients and broadcasts messages to rooms
 type Hub struct {
 	//all connected clients
 	clients map[*Client]bool
@@ -65,7 +72,7 @@ func (h *Hub) run() {
 			}
 
 		case req := <-h.joinRoom:
-			h.handleJoinRoom(req.client, req.room)
+			h.handleJoinRoom(req.client, req.room, req.skipBroadcast)
 
 		case req := <-h.leaveRoom:
 			h.removeFromRoom(req.client, req.room)
@@ -76,7 +83,7 @@ func (h *Hub) run() {
 	}
 }
 
-func (h *Hub) handleJoinRoom(client *Client, room string) {
+func (h *Hub) handleJoinRoom(client *Client, room string, skipBroadcast bool) {
 	//leave current room if in one
 	if client.room != "" {
 		h.removeFromRoom(client, client.room)
@@ -94,13 +101,15 @@ func (h *Hub) handleJoinRoom(client *Client, room string) {
 	log.Printf("%s joined room: %s", client.username, room)
 
 	//notify room members
-	joinMsg := &Message{
-		Type:     "join",
-		Room:     room,
-		Username: client.username,
-		Content:  client.username + " joined the room",
+	if !skipBroadcast {
+		joinMsg := &Message{
+			Type:     "join",
+			Room:     room,
+			Username: client.username,
+			Content:  client.username + " joined the room",
+		}
+		h.broadcastToRoom(joinMsg)
 	}
-	h.broadcastToRoom(joinMsg)
 }
 
 func (h *Hub) removeFromRoom(client *Client, room string) {

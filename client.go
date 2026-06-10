@@ -22,7 +22,7 @@ const (
 	maxMessageSize = 512
 )
 
-//Client represents a single WebSocket connection
+// Client represents a single WebSocket connection
 type Client struct {
 	hub      *Hub
 	conn     *websocket.Conn
@@ -31,7 +31,7 @@ type Client struct {
 	username string
 }
 
-//pumps messages from the WebSocket to the Hub
+// pumps messages from the WebSocket to the Hub
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -66,7 +66,11 @@ func (c *Client) readPump() {
 		//handle different message types
 		switch msg.Type {
 		case "join":
-			c.hub.joinRoom <- &RoomRequest{client: c, room: msg.Room}
+			skipBroadcast := false
+			if msg.SkipBroadcast {
+				skipBroadcast = msg.SkipBroadcast
+			}
+			c.hub.joinRoom <- &RoomRequest{client: c, room: msg.Room, skipBroadcast: skipBroadcast}
 		case "leave":
 			c.hub.leaveRoom <- &RoomRequest{client: c, room: msg.Room}
 		case "message":

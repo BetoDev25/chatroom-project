@@ -23,8 +23,13 @@
         <div class="chat-section">
             <div>
                 <input type="text" id="room" placeholder="Room name">
-                <button onclick="joinRoom(false)">Join Room</button>
             </div>
+            <div>
+                <button onclick="joinRoom(false)">Join Room</button>
+                <button onclick="createRoom()">Create Room</button>
+            </div>
+            <div>Current Room: <span id="currentRoomName"></span></div>
+            <div id="roomError" style="color: red; margin-top: 10px;"></div>
             <div id="messages"></div>
             <div>
                 <input type="text" id="message" placeholder="Message" onkeypress="if(event.key==='Enter')sendMessage()">
@@ -53,7 +58,7 @@
         }
 
         let currentRoom = null;
-        async function joinRoom(skipArchive = false) {
+        async function joinRoom(skipArchive = false, isCreation = false) {
             const roomName = document.getElementById('room').value;
 
             const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`);
@@ -64,13 +69,40 @@
             }
 
             currentRoom = await response.json();
+            document.getElementById('currentRoomName').textContent = currentRoom.RoomName || '';
 
             localStorage.setItem('lastRoom', roomName);
             localStorage.setItem('lastRoomData', JSON.stringify(currentRoom));
 
             await loadMessages(true);
 
-            ws.send(JSON.stringify({type: 'join', room: roomName}));
+            ws.send(JSON.stringify({type: 'join', room: roomName, skipBroadcast: skipArchive}));
+
+            //send creation message - do NOT send join message
+            if (isCreation) {
+                const creationContent = `${currentUser.username} created "${roomName}"`;
+
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    content: creationContent,
+                    room_id: currentRoom.RoomID,
+                    user_id: currentUser.id,
+                    message_type: 'system'
+                }));
+
+                //archive creation message
+                await fetch('api/messages', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        room_id: currentRoom.RoomID,
+                        user_id: currentUser.id,
+                        content: creationContent,
+                        message_type: 'system'
+                    })
+                });
+                return
+            }
 
             //archive join message
             if (!skipArchive) {
@@ -85,6 +117,40 @@
                 }).catch(err => {
                     console.error('Failed to archive join message:', err);
                 });
+            }
+        }
+
+        async function createRoom() {
+            if (!currentUser) {
+                console.error('No user logged in');
+                return;
+            }
+            const roomName = document.getElementById('room').value;
+            const errorDiv = document.getElementById('roomError');
+            try {
+                const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    errorDiv.style.color = 'green';
+                    errorDiv.textContent = 'Room created! Joining...';
+                    setTimeout(() => {
+                        joinRoom(false, true)
+                    }, 1000);
+                } else {
+                    errorDiv.style.color = 'red';
+                    errorDiv.textContent = data.error || 'Failed to create room';
+                }
+            } catch (error) {
+                errorDiv.style.color = 'red';
+                errorDiv.textContent = 'Error connecting to server';
             }
         }
 
@@ -119,6 +185,8 @@
             }
 
             const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
+            console.log('Response status:', response.status); //DEBUG
+
 
             if (!response.ok) {
                 console.error('Failed to load messages');
@@ -126,6 +194,7 @@
             }
 
             const messages = await response.json();
+            console.log('Messages response:', messages); //DEBUG
 
             //Display messages
             messages.forEach(msg => {
@@ -157,6 +226,8 @@
 
             if (response.ok) {
                 //window.location.href = '/login.html';
+                localStorage.removeItem('lastRoom');
+                localStorage.removeItem('lastRoomData');
                 window.location.reload()
             }
         }
@@ -178,8 +249,7 @@
                     
                     if (roomResponse.ok) {
                         currentRoom = await roomResponse.json();
-                        await loadMessages(true);
-                        ws.send(JSON.stringify({type: 'join', room: lastRoomName}));
+                        await joinRoom(true);
                         // Don't archive join message on refresh
                     } else {
                         // Room was deleted, clear localStorage
@@ -188,6 +258,8 @@
                     }
                 }
             } else {
+                localStorage.removeItem('lastRoom');
+                localStorage.removeItem('lastRoomData');
                 window.location.href = "/login.html";
             }
         });

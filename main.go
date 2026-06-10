@@ -115,8 +115,8 @@ func main() {
 	mux.HandleFunc("POST /api/cookie", apiCfg.setCookieHandler)
 	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 	mux.HandleFunc("POST /api/logout", apiCfg.handlerLogoutUser)
-	mux.Handle("POST /api/rooms/{roomName}", apiCfg.middlewareFunc(http.HandlerFunc(apiCfg.handlerCreateRoom)))
-	mux.Handle("DELETE /api/rooms/{roomName}", apiCfg.middlewareFunc(http.HandlerFunc(apiCfg.handlerDeleteRoom)))
+	mux.HandleFunc("POST /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerCreateRoom))
+	mux.HandleFunc("DELETE /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerDeleteRoom))
 	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
 	mux.HandleFunc("POST /api/messages", apiCfg.handlerCreateMessage)
 	mux.HandleFunc("GET /api/messages/{roomID}", apiCfg.handlerGetMessages)
@@ -126,7 +126,9 @@ func main() {
 		serveWs(hub, w, r)
 	})
 
-	mux.Handle("/", apiCfg.middlewareFunc(http.FileServer(http.Dir("./static"))))
+	mux.HandleFunc("/", apiCfg.middlewareFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(http.Dir("./static")).ServeHTTP(w, r)
+	}))
 
 	fmt.Println("Server is running on port" + server.Addr)
 

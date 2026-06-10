@@ -8,7 +8,7 @@ import (
 	"github.com/BetoDev25/chatroom-project/internal/cookies"
 )
 
-func (cfg *apiConfig) middlewareFunc(next http.Handler) http.Handler {
+func (cfg *apiConfig) middlewareFunc(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//check if the user currently has a session_token (is logged in)
 
@@ -44,6 +44,6 @@ func (cfg *apiConfig) middlewareFunc(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), "user_id", user.ID)
 		ctx = context.WithValue(ctx, "username", user.Username)
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
