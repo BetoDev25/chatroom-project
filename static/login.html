@@ -12,6 +12,8 @@
 </p>
 
 <script>
+    localStorage.removeItem('lastRoom');
+    localStorage.removeItem('lastRoomData');
     console.log('Login function defined:', typeof login);
     async function login() {
         const usernameVal = document.getElementById('username').value;

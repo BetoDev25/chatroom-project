@@ -41,7 +41,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	session, err := cfg.db.CreateSession(r.Context(), database.CreateSessionParams{
 		Token:     token,
 		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(5 * time.Hour),
+		ExpiresAt: time.Now().Add(8 * time.Hour),
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create session")
