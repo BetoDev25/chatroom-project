@@ -11,6 +11,11 @@
         .chat-section {
             flex: 3;
         }
+        .tab.active {
+            background: #ff4444;
+            color: white;
+            border-color: #ff4444;
+        }
         #messages { height: 300px; width: 50%; margin: 0; box-sizing: border-box; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
         .system { color: #888; font-style: italic; }
     </style>
@@ -21,14 +26,18 @@
     <h2 id="welcome"></h2>
     <div class="container">
         <div class="chat-section">
-            <div>
-                <input type="text" id="room" placeholder="Room name">
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="room" placeholder="Room name" style="padding: 6px;">
             </div>
-            <div>
-                <button onclick="joinRoom(false)">Join Room</button>
-                <button onclick="createRoom()">Create Room</button>
+            <div style="margin-bottom: 10px;">
+                <button onclick="joinRoom(false)" style="padding: 6px 12px;">Join Room</button>
+                <button onclick="createRoom()" style="padding: 6px 12px;">Create Room</button>
             </div>
-            <div>Current Room: <span id="currentRoomName"></span></div>
+            <!-- Tabs -->
+            <div id="tabBar" style="display: flex; 
+            gap: 4px; padding: 8px 0; border-bottom: 2px solid #ccc; margin-bottom: 10px; min-height: 40px;">
+            </div>
+            <!-- End of tabs -->
             <div id="roomError" style="color: red; margin-top: 10px;"></div>
             <div id="messages"></div>
             <div>
@@ -37,6 +46,8 @@
             </div>
     <script src="/static/js/api.js"></script>
     <script>
+        let tabs = [];
+        let activeTabId = null;
         let ws;
 
         function connect() {
@@ -60,6 +71,7 @@
         let currentRoom = null;
         async function joinRoom(skipArchive = false, isCreation = false) {
             const roomName = document.getElementById('room').value;
+            document.getElementById('room').value = '';
 
             const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`);
 
@@ -69,7 +81,7 @@
             }
 
             currentRoom = await response.json();
-            document.getElementById('currentRoomName').textContent = currentRoom.RoomName || '';
+            addTab(currentRoom);
 
             localStorage.setItem('lastRoom', roomName);
             localStorage.setItem('lastRoomData', JSON.stringify(currentRoom));
@@ -218,6 +230,129 @@
             }
         });
 
+        function addTab(roomData, save = true) {
+            const roomId = roomData.RoomID;
+            const roomName = roomData.RoomName;
+
+            // Check if tab already exists
+            if (tabs.find(t => t.RoomID === roomId)) {
+                return; // Tab already open
+            }
+            
+            // Add to array
+            tabs.push(roomData);
+            activeTabId = roomId;
+            
+            // Create DOM element
+            const tabBar = document.getElementById('tabBar');
+            const tab = document.createElement('button');
+            tab.className = 'tab active';
+            tab.dataset.roomId = roomId;
+            tab.innerHTML = `${roomName} <span class="close" data-room-id="${roomId}">✕</span>`;
+            
+            tab.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close')) {
+                    e.stopPropagation();
+                    closeTab(roomId);
+                    return;
+                }
+                switchTab(roomId);
+            });
+            
+            tabBar.appendChild(tab);
+            if (save) saveTabs();
+        }
+
+        function switchTab(roomId, save = true) {
+            const room = tabs.find(t => t.RoomID === roomId);
+            if (!room) return;
+            
+            activeTabId = roomId;
+            
+            // Update DOM classes
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-room-id="${roomId}"]`).classList.add('active');
+            
+            // Load messages for this room
+            currentRoom = room;
+            loadMessages(true);
+            if (save) saveTabs();
+        }
+
+        function closeTab(roomId) {
+            // Send WebSocket leave
+            ws.send(JSON.stringify({type: 'leave', room: roomId}));
+            
+            // Remove from DOM
+            const tabElement = document.querySelector(`.tab[data-room-id="${roomId}"]`);
+            if (tabElement) tabElement.remove();
+            
+            // Remove from array
+            tabs = tabs.filter(t => t.RoomID !== roomId);
+            
+            // If active tab was closed, switch to another
+            if (activeTabId === roomId) {
+                if (tabs.length > 0) {
+                    switchTab(tabs[0].RoomID);
+                } else {
+                    activeTabId = null;
+                    document.getElementById('messages').innerHTML = '';
+                }
+            }
+            saveTabs();
+        }
+
+        function saveTabs() {
+            localStorage.setItem('openTabs', JSON.stringify(tabs));
+            localStorage.setItem('activeTabId', activeTabId);
+        }
+
+        function loadTabs() {
+            const savedTabs = localStorage.getItem('openTabs');
+            if (!savedTabs) return;
+            
+            const parsed = JSON.parse(savedTabs);
+            
+            // Add all tabs without saving
+            parsed.forEach(roomData => {
+                const roomId = roomData.RoomID;
+                const roomName = roomData.RoomName;
+                
+                // Check if tab already exists
+                if (tabs.find(t => t.RoomID === roomId)) {
+                    return;
+                }
+                
+                tabs.push(roomData);
+                
+                // Create DOM element
+                const tabBar = document.getElementById('tabBar');
+                const tab = document.createElement('button');
+                tab.className = 'tab';
+                tab.dataset.roomId = roomId;
+                tab.innerHTML = `${roomName} <span class="close" data-room-id="${roomId}">✕</span>`;
+                
+                tab.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('close')) {
+                        e.stopPropagation();
+                        closeTab(roomId);
+                        return;
+                    }
+                    switchTab(roomId);
+                });
+                
+                tabBar.appendChild(tab);
+            });
+            
+            // Restore active tab
+            const savedActive = localStorage.getItem('activeTabId');
+            if (savedActive && tabs.find(t => t.RoomID === savedActive)) {
+                switchTab(savedActive, false);
+            } else if (tabs.length > 0) {
+                switchTab(tabs[0].RoomID, false);
+            }
+        }
+
         async function logout() {
             const response = await fetch('api/logout', {
                 method: 'POST',
@@ -228,6 +363,8 @@
                 //window.location.href = '/login.html';
                 localStorage.removeItem('lastRoom');
                 localStorage.removeItem('lastRoomData');
+                localStorage.removeItem('openTabs');
+                localStorage.removeItem('activeTabId');
                 window.location.reload()
             }
         }
@@ -239,27 +376,33 @@
                 currentUser = user;
                 connect();
 
-                const lastRoomName = localStorage.getItem('lastRoom');
-                
-                if (lastRoomName) {
-                    document.getElementById('room').value = lastRoomName;
+                loadTabs();
+
+                if (tabs.length === 0) {
+                    const lastRoomName = localStorage.getItem('lastRoom');
                     
-                    // Verify room still exists via API
-                    const roomResponse = await fetch(`/api/rooms/${encodeURIComponent(lastRoomName)}`);
-                    
-                    if (roomResponse.ok) {
-                        currentRoom = await roomResponse.json();
-                        await joinRoom(true);
-                        // Don't archive join message on refresh
-                    } else {
-                        // Room was deleted, clear localStorage
-                        localStorage.removeItem('lastRoom');
-                        localStorage.removeItem('lastRoomData');
+                    if (lastRoomName) {
+                        document.getElementById('room').value = lastRoomName;
+                        
+                        // Verify room still exists via API
+                        const roomResponse = await fetch(`/api/rooms/${encodeURIComponent(lastRoomName)}`);
+                        
+                        if (roomResponse.ok) {
+                            currentRoom = await roomResponse.json();
+                            await joinRoom(true);
+                            // Don't archive join message on refresh
+                        } else {
+                            // Room was deleted, clear localStorage
+                            localStorage.removeItem('lastRoom');
+                            localStorage.removeItem('lastRoomData');
+                        }
                     }
                 }
             } else {
                 localStorage.removeItem('lastRoom');
                 localStorage.removeItem('lastRoomData');
+                localStorage.removeItem('openTabs');
+                localStorage.removeItem('activeTabId');
                 window.location.href = "/login.html";
             }
         });
