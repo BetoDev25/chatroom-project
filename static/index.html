@@ -44,6 +44,10 @@
                 <input type="text" id="message" placeholder="Message" onkeypress="if(event.key==='Enter')sendMessage()">
                 <button onclick="sendMessage()">Send</button>
             </div>
+        </div>
+        <div id="friendsPanel" style="flex: 1; min-width: 250px; border-left: 2px solid #ccc; padding: 0 10px;">
+
+        </div>
     <script src="/static/js/api.js"></script>
     <script>
         let tabs = [];
@@ -377,6 +381,7 @@
                 connect();
 
                 loadTabs();
+                await loadFriendsPanel();
 
                 if (tabs.length === 0) {
                     const lastRoomName = localStorage.getItem('lastRoom');
@@ -406,6 +411,25 @@
                 window.location.href = "/login.html";
             }
         });
+
+        // Load friends list
+        async function loadFriendsPanel() {
+            console.log('Loading friends panel...');
+            try {
+                const response = await fetch('/static/friends.html');
+                const html = await response.text();
+                document.getElementById('friendsPanel').innerHTML = html;
+                
+                // Load the friends.js script
+                const script = document.createElement('script');
+                script.src = '/static/js/friends.js';
+                document.body.appendChild(script);
+                
+                console.log('Friends panel loaded');
+            } catch (error) {
+                console.error('Error loading friends panel:', error);
+            }
+        }
     </script>
 </body>
 </html>

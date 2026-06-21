@@ -15,3 +15,8 @@ DELETE FROM rooms WHERE room_id = $1;
 SELECT *
 FROM rooms
 WHERE room_name = $1;
+
+-- name: GetRooms :many
+SELECT *
+FROM rooms
+WHERE owner_id = $1;

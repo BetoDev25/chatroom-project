@@ -1,0 +1,52 @@
+<!-- static/pages/friends.html -->
+<div id="friendsPanel">
+    <div style="padding: 10px; border-bottom: 2px solid #ccc;">
+        <span style="font-weight: bold; font-size: 18px;">Friends</span>
+        <button style="float: right; padding: 4px 12px;">+ Add Friend</button>
+    </div>
+    
+    <div id="friendList" style="padding: 10px; height: 300px; overflow-y: auto;">
+        <!-- Friend 1 -->
+        <div style="padding: 8px 0; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
+            <span>Alice</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button style="padding: 2px 8px; cursor: pointer;">
+                    <img src="/static/assets/chat.png" alt="chat" style="width: 18px; height: 18px; vertical-align: middle;">
+                </button>
+                <img src="/static/assets/offline.png" alt="status" style="width: 14px; height: 14px;">
+            </div>
+        </div>
+        
+        <!-- Friend 2 -->
+        <div style="padding: 8px 0; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
+            <span>Bob</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button style="padding: 2px 8px; cursor: pointer;">
+                    <img src="/static/assets/chat.png" alt="chat" style="width: 18px; height: 18px; vertical-align: middle;">
+                </button>
+                <img src="/static/assets/offline.png" alt="status" style="width: 14px; height: 14px;">
+            </div>
+        </div>
+        
+        <!-- Friend 3 -->
+        <div style="padding: 8px 0; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
+            <span>Charlie</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button style="padding: 2px 8px; cursor: pointer;">
+                    <img src="/static/assets/chat.png" alt="chat" style="width: 18px; height: 18px; vertical-align: middle;">
+                </button>
+                <img src="/static/assets/online.png" alt="status" style="width: 14px; height: 14px;">
+            </div>
+        </div>
+
+        <!-- Separator -->
+        <div style="border-top: 2px solid #999; margin: 0 10px;"></div>
+        <!-- Rooms section -->
+        <div style="padding: 10px;">
+            <span style="font-weight: bold; font-size: 18px;">Your Rooms</span>
+        </div>
+        <div id="roomList" style="padding: 0 10px 10px 10px; max-height: 200px; overflow-y: auto;">
+            <!-- Rooms will be dynamically loaded here -->
+         </div>
+    </div>
+</div>

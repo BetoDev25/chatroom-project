@@ -118,6 +118,7 @@ func main() {
 	mux.HandleFunc("POST /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerCreateRoom))
 	mux.HandleFunc("DELETE /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerDeleteRoom))
 	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
+	mux.HandleFunc("GET /api/rooms", apiCfg.middlewareFunc(apiCfg.handlerGetRooms))
 	mux.HandleFunc("POST /api/messages", apiCfg.handlerCreateMessage)
 	mux.HandleFunc("GET /api/messages/{roomID}", apiCfg.handlerGetMessages)
 
