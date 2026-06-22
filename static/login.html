@@ -1,8 +1,8 @@
 <h1>Login</h1>
-<input type="text" id="username" placeholder="username">
+<input type="text" id="username" placeholder="username" onkeypress="if(event.key==='Enter')login()">
 <div style="height: 10px;"></div>
 
-<input type="password" id="password" placeholder="password">
+<input type="password" id="password" placeholder="password" onkeypress="if(event.key==='Enter')login()">
 <div style="height: 10px;"></div>
 
 <button onclick="login()">Log in</button>

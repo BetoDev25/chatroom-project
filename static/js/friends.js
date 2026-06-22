@@ -37,6 +37,9 @@ async function loadRooms() {
             const nameSpan = document.createElement('span');
             nameSpan.textContent = room.RoomName;
 
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
             const joinButton = document.createElement('button');
             joinButton.textContent = 'Join';
             joinButton.style.cssText = 'padding: 2px 12px; cursor: pointer;';
@@ -48,8 +51,38 @@ async function loadRooms() {
                 }
             };
 
+            const deleteButton = document.createElement('button');
+            deleteButton.style.cssText = 'padding: 2px 6px; cursor: pointer; background: none; border: 1px solid #ccc; border-radius: 3px;';
+            deleteButton.onclick = async () => {
+                if (confirm(`Delete room "${room.RoomName}"?`)) {
+                    try {
+                        const deleteResponse = await fetch(`/api/rooms/${encodeURIComponent(room.RoomName)}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                        
+                        if (deleteResponse.ok) {
+                            loadRooms(); // Refresh the list
+                        } else {
+                            console.error('Failed to delete room');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting room:', error);
+                    }
+                }
+            };
+
+            const trashIcon = document.createElement('img');
+            trashIcon.src = '/static/assets/trash.png';
+            trashIcon.alt = 'Delete';
+            trashIcon.style.cssText = 'width: 16px; height: 16px; display: block;';
+            deleteButton.appendChild(trashIcon);
+
+            buttonContainer.appendChild(joinButton);
+            buttonContainer.appendChild(deleteButton);
+
             div.appendChild(nameSpan);
-            div.appendChild(joinButton);
+            div.appendChild(buttonContainer);
             roomList.appendChild(div);
         });
     } catch (error) {
