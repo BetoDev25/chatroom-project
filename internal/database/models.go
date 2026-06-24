@@ -10,6 +10,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type Friendship struct {
+	FriendshipID uuid.UUID
+	SenderID     uuid.UUID
+	ReceiverID   uuid.UUID
+	FriendStatus string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type Message struct {
 	MessageID   uuid.UUID
 	RoomID      uuid.UUID

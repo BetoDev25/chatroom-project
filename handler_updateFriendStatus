@@ -1,0 +1,55 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
+)
+
+func (cfg *apiConfig) handlerUpdateFriendStatus(w http.ResponseWriter, r *http.Request) {
+	type params struct {
+		FriendshipID uuid.UUID `json:"friendship_id"`
+		Status       string    `json:"status"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	input := params{}
+	err := decoder.Decode(&input)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode input")
+		return
+	}
+
+	message := "Friend request accepted"
+	if input.Status == "accepted" {
+		err = cfg.db.UpdateFriendStatus(r.Context(), database.UpdateFriendStatusParams{
+			FriendshipID: input.FriendshipID,
+			Status:       input.Status,
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key") {
+				respondWithError(w, http.StatusConflict, "Already friends")
+				return
+			}
+			respondWithError(w, http.StatusInternalServerError, "Couldn't add friend")
+			return
+		}
+	} else if input.Status == "rejected" {
+		message = "Friend request rejected"
+		err = cfg.db.DeleteFriendship(r.Context(), input.FriendshipID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't delete friend request")
+			return
+		}
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Invalid status. Must be 'accepted' or 'rejected'")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]string{
+		"message": message,
+		"status":  input.Status,
+	})
+}
