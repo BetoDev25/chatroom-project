@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/BetoDev25/chatroom-project/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +27,7 @@ func (cfg *apiConfig) handlerUpdateFriendStatus(w http.ResponseWriter, r *http.R
 	if input.Status == "accepted" {
 		err = cfg.db.UpdateFriendStatus(r.Context(), database.UpdateFriendStatusParams{
 			FriendshipID: input.FriendshipID,
-			Status:       input.Status,
+			FriendStatus: input.Status,
 		})
 		if err != nil {
 			if strings.Contains(err.Error(), "duplicate key") {

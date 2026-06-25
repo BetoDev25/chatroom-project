@@ -21,7 +21,22 @@
     </style>
 </head>
 <body>
-    <button onclick="logout()" style="position: fixed; top: 10px; right: 10px; padding: 8px 16px;">Logout</button>
+    <!-- Container for top right buttons -->
+    <div style="position: fixed; top: 10px; right: 10px; display: flex; gap: 10px; align-items: center;">
+        <!-- Inbox -->
+        <div class="inbox-container" style="position: relative; display: inline-block;">
+            <button onclick="toggleInbox()" style="padding: 8px 12px; cursor: pointer;">
+                <img src="/static/assets/inbox.png" alt="inbox" style="width: 24px; height: 24px; vertical-align: middle;">
+            </button>
+            <!-- Dropdown content -->
+            <div id="inboxDropdown" style="display: none; position: absolute; right: 0; top: 40px; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 10px; min-width: 200px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;">
+                <div id="inboxContent">You have no notifications</div>
+            </div>
+        </div>
+        <button onclick="logout()" style="padding: 8px 16px;">Logout</button>
+    </div>
+    <!-- End of container code -->
+
     <h1>Go Chat with Rooms</h1>
     <h2 id="welcome"></h2>
     <div class="container">
@@ -40,6 +55,16 @@
             <!-- End of tabs -->
             <div id="roomError" style="color: red; margin-top: 10px;"></div>
             <div id="messages"></div>
+            <!-- Username dropdown -->
+            <div id="userDropdown" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px 0; min-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 2000;">
+                <div onclick="window.handleUserAction('add')" style="padding: 8px 15px; cursor: pointer;">
+                    Add friend
+                </div>
+                <div onclick="window.handleUserAction('block')" style="padding: 8px 15px; cursor: pointer;">
+                    Block
+                </div>
+            </div>
+            <!-- End of username dropdown -->
             <div>
                 <input type="text" id="message" placeholder="Message" onkeypress="if(event.key==='Enter')sendMessage()">
                 <button onclick="sendMessage()">Send</button>
@@ -49,15 +74,22 @@
 
         </div>
     <script src="/static/js/api.js"></script>
+    <script src="/static/js/inbox.js"></script>
+    <script src="/static/js/friends.js"></script>
     <script>
         let tabs = [];
         let activeTabId = null;
         let ws;
 
         function connect() {
-            //const username = document.getElementById('username').value || 'anonymous';
             if (!currentUser) return;
             ws = new WebSocket(`ws://localhost:8080/ws?username=${currentUser.username}`);
+
+            ws.onopen = function() {
+                if (currentRoom && currentRoom.RoomName) {
+                    ws.send(JSON.stringify({type: 'join', room: currentRoom.RoomName, skipBroadcast: true}));
+                }
+            };
 
             ws.onmessage = function(event) {
                 const msg = JSON.parse(event.data);
@@ -66,7 +98,28 @@
                     div.className = 'system';
                     div.textContent = msg.content;
                 } else {
-                    div.textContent = `${msg.username}: ${msg.content}`;
+                    if (msg.username === currentUser.username) {
+                        div.textContent = `${msg.username}: ${msg.content}`;
+                    } else {
+                        console.log('Creating clickable username for:', msg.username); // Debug
+                        console.log('toggleUserDropdown exists:', typeof window.toggleUserDropdown); // Debug
+
+                        const usernameSpan = document.createElement('span');
+                        usernameSpan.textContent = msg.username;
+                        usernameSpan.style.cssText = 'cursor: pointer; color: #0066cc; text-decoration: underline;';
+                        usernameSpan.className = 'chat-username';
+                        usernameSpan.dataset.username = msg.username;
+                        usernameSpan.onclick = function(e) {
+                            e.stopPropagation();
+                            window.toggleUserDropdown(e, this.dataset.username);
+                        };
+
+                        const contentSpan = document.createElement('span');
+                        contentSpan.textContent = `: ${msg.content}`;
+
+                        div.appendChild(usernameSpan);
+                        div.appendChild(contentSpan);
+                    }
                 }
                 document.getElementById('messages').appendChild(div);
             };
@@ -201,31 +254,46 @@
             }
 
             const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
-            console.log('Response status:', response.status); //DEBUG
-
-
+            
             if (!response.ok) {
                 console.error('Failed to load messages');
-                return
+                return;
             }
 
             const messages = await response.json();
-            console.log('Messages response:', messages); //DEBUG
-
-            //Display messages
+            
             messages.forEach(msg => {
                 const div = document.createElement('div');
                 if (msg.message_type === 'system') {
                     div.className = 'system';
                     div.textContent = msg.content;
                 } else {
-                    div.textContent = `${msg.Username}: ${msg.Content}`;
+                    // Don't make the current user's own username clickable
+                    if (msg.Username === currentUser.username) {
+                        div.textContent = `${msg.Username}: ${msg.Content}`;
+                    } else {
+                        const usernameSpan = document.createElement('span');
+                        usernameSpan.textContent = msg.Username;
+                        usernameSpan.style.cssText = 'cursor: pointer; color: #0066cc; text-decoration: underline;';
+                        usernameSpan.className = 'chat-username';
+                        usernameSpan.dataset.username = msg.Username;
+                        usernameSpan.onclick = function(e) {
+                            e.stopPropagation();
+                            window.toggleUserDropdown(e, this.dataset.username);
+                        };
+
+                        const contentSpan = document.createElement('span');
+                        contentSpan.textContent = `: ${msg.Content}`;
+
+                        div.appendChild(usernameSpan);
+                        div.appendChild(contentSpan);
+                    }
                 }
                 document.getElementById('messages').appendChild(div);
             });
+            
             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-
-            currentPage++
+            currentPage++;
         }
         //load when scrolling
         document.getElementById('messages').addEventListener('scroll', function() {
@@ -414,7 +482,6 @@
 
         // Load friends list
         async function loadFriendsPanel() {
-            console.log('Loading friends panel...');
             try {
                 const response = await fetch('/static/friends.html');
                 const html = await response.text();
@@ -424,8 +491,6 @@
                 const script = document.createElement('script');
                 script.src = '/static/js/friends.js';
                 document.body.appendChild(script);
-                
-                console.log('Friends panel loaded');
             } catch (error) {
                 console.error('Error loading friends panel:', error);
             }

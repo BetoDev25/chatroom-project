@@ -17,3 +17,23 @@ WHERE friendship_id = $1;
 
 -- name: DeleteFriendship :exec
 DELETE FROM friendship WHERE friendship_id = $1;
+
+-- name: GetPendingRequests :many
+SELECT 
+    f.*,
+    u.username
+FROM friendship f
+JOIN users u ON f.sender_id = u.id
+WHERE f.receiver_id = $1 AND f.friend_status = 'pending';
+
+-- name: GetFriends :many
+SELECT 
+    u.id,
+    u.username
+FROM friendship f
+JOIN users u ON (
+    (f.sender_id = $1 AND f.receiver_id = u.id) OR 
+    (f.receiver_id = $1 AND f.sender_id = u.id)
+)
+WHERE f.friend_status = 'accepted'
+AND u.id != $1;

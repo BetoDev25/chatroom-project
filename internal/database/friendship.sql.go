@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -50,6 +51,97 @@ DELETE FROM friendship WHERE friendship_id = $1
 func (q *Queries) DeleteFriendship(ctx context.Context, friendshipID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteFriendship, friendshipID)
 	return err
+}
+
+const getFriends = `-- name: GetFriends :many
+SELECT 
+    u.id,
+    u.username
+FROM friendship f
+JOIN users u ON (
+    (f.sender_id = $1 AND f.receiver_id = u.id) OR 
+    (f.receiver_id = $1 AND f.sender_id = u.id)
+)
+WHERE f.friend_status = 'accepted'
+AND u.id != $1
+`
+
+type GetFriendsRow struct {
+	ID       uuid.UUID
+	Username string
+}
+
+func (q *Queries) GetFriends(ctx context.Context, senderID uuid.UUID) ([]GetFriendsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFriends, senderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFriendsRow
+	for rows.Next() {
+		var i GetFriendsRow
+		if err := rows.Scan(&i.ID, &i.Username); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPendingRequests = `-- name: GetPendingRequests :many
+SELECT 
+    f.friendship_id, f.sender_id, f.receiver_id, f.friend_status, f.created_at, f.updated_at,
+    u.username
+FROM friendship f
+JOIN users u ON f.sender_id = u.id
+WHERE f.receiver_id = $1 AND f.friend_status = 'pending'
+`
+
+type GetPendingRequestsRow struct {
+	FriendshipID uuid.UUID
+	SenderID     uuid.UUID
+	ReceiverID   uuid.UUID
+	FriendStatus string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Username     string
+}
+
+func (q *Queries) GetPendingRequests(ctx context.Context, receiverID uuid.UUID) ([]GetPendingRequestsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPendingRequests, receiverID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPendingRequestsRow
+	for rows.Next() {
+		var i GetPendingRequestsRow
+		if err := rows.Scan(
+			&i.FriendshipID,
+			&i.SenderID,
+			&i.ReceiverID,
+			&i.FriendStatus,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateFriendStatus = `-- name: UpdateFriendStatus :exec

@@ -1,13 +1,8 @@
-// static/js/friends.js
 async function loadRooms() {
-    console.log('loadRooms called');
-    
     try {
         const response = await fetch('/api/rooms', {
             credentials: 'include'
         });
-
-        console.log('Response status:', response.status);
 
         if (!response.ok) {
             console.error('Failed to load rooms');
@@ -15,7 +10,6 @@ async function loadRooms() {
         }
 
         const rooms = await response.json();
-        console.log('Rooms received:', rooms);
         
         const roomList = document.getElementById('roomList');
         if (!roomList) {
@@ -89,6 +83,128 @@ async function loadRooms() {
         console.error('Error loading rooms:', error);
     }
 }
+
+// friends.js
+
+let currentTargetUser = null;
+
+window.toggleUserDropdown = function(event, username) {
+    const dropdown = document.getElementById('userDropdown');
+    const existing = document.querySelector('.user-dropdown-open');
+    
+    if (existing && existing.dataset.username === username) {
+        dropdown.style.display = 'none';
+        document.querySelectorAll('.user-dropdown-open').forEach(el => {
+            el.classList.remove('user-dropdown-open');
+        });
+        currentTargetUser = null;
+        return;
+    }
+    
+    document.querySelectorAll('.user-dropdown-open').forEach(el => {
+        el.classList.remove('user-dropdown-open');
+    });
+    
+    const usernameElement = event.target;
+    const rect = usernameElement.getBoundingClientRect();
+    
+    let top = rect.bottom + 5;
+    let left = rect.left;
+    
+    const dropdownWidth = 120;
+    if (left + dropdownWidth > window.innerWidth) {
+        left = window.innerWidth - dropdownWidth - 10;
+    }
+    
+    if (left < 10) {
+        left = 10;
+    }
+    
+    if (top + 80 > window.innerHeight) {
+        top = rect.top - 80;
+    }
+    
+    dropdown.style.display = 'block';
+    dropdown.style.left = left + 'px';
+    dropdown.style.top = top + 'px';
+    
+    currentTargetUser = username;
+    
+    document.querySelectorAll('.chat-username').forEach(el => {
+        if (el.dataset.username === username) {
+            el.classList.add('user-dropdown-open');
+        }
+    });
+};
+
+window.handleUserAction = function(action) {
+    const dropdown = document.getElementById('userDropdown');
+    dropdown.style.display = 'none';
+    document.querySelectorAll('.user-dropdown-open').forEach(el => {
+        el.classList.remove('user-dropdown-open');
+    });
+    
+    if (action === 'add') {
+        const targetUser = currentTargetUser;
+        
+        if (!currentUser || !currentUser.id) {
+            alert('You must be logged in to add friends');
+            currentTargetUser = null;
+            return;
+        }
+        
+        fetch(`/api/users/${encodeURIComponent(targetUser)}`, {
+            credentials: 'include'
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('User not found');
+            return res.json();
+        })
+        .then(user => {
+            return fetch('/api/friend-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    sender_id: currentUser.id,
+                    receiver_id: user.ID
+                })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                alert(`Friend request sent to ${targetUser}`);
+            } else {
+                alert('Failed to send friend request');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error sending friend request');
+        });
+        
+    } else if (action === 'block') {
+        alert(`Blocked ${currentTargetUser}`);
+    }
+    
+    currentTargetUser = null;
+};
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('userDropdown');
+    const isClickInside = dropdown.contains(event.target) || 
+                          event.target.classList.contains('chat-username') ||
+                          event.target.closest('.chat-username');
+    
+    if (!isClickInside && dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        document.querySelectorAll('.user-dropdown-open').forEach(el => {
+            el.classList.remove('user-dropdown-open');
+        });
+        currentTargetUser = null;
+    }
+});
 
 // Auto-execute when script loads
 if (document.readyState === 'loading') {

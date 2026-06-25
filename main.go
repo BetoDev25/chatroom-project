@@ -115,12 +115,16 @@ func main() {
 	mux.HandleFunc("POST /api/cookie", apiCfg.setCookieHandler)
 	mux.HandleFunc("GET /api/me", apiCfg.handlerMe)
 	mux.HandleFunc("POST /api/logout", apiCfg.handlerLogoutUser)
+	mux.HandleFunc("GET /api/users/{username}", apiCfg.handlerGetUserByName)
 	mux.HandleFunc("POST /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerCreateRoom))
 	mux.HandleFunc("DELETE /api/rooms/{roomName}", apiCfg.middlewareFunc(apiCfg.handlerDeleteRoom))
 	mux.HandleFunc("GET /api/rooms/{roomName}", apiCfg.handlerGetRoom)
 	mux.HandleFunc("GET /api/rooms", apiCfg.middlewareFunc(apiCfg.handlerGetRooms))
 	mux.HandleFunc("POST /api/messages", apiCfg.handlerCreateMessage)
 	mux.HandleFunc("GET /api/messages/{roomID}", apiCfg.handlerGetMessages)
+	mux.HandleFunc("POST /api/friend-request", apiCfg.handlerCreateFriendRequest)
+	mux.HandleFunc("PATCH /api/friend-request", apiCfg.handlerUpdateFriendStatus)
+	mux.HandleFunc("GET /api/friend-request/{status}", apiCfg.middlewareFunc(apiCfg.handlerGetRequests))
 
 	//websocket route
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
