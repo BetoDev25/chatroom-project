@@ -56,7 +56,8 @@ func (q *Queries) DeleteFriendship(ctx context.Context, friendshipID uuid.UUID) 
 const getFriends = `-- name: GetFriends :many
 SELECT 
     u.id,
-    u.username
+    u.username,
+    f.friendship_id
 FROM friendship f
 JOIN users u ON (
     (f.sender_id = $1 AND f.receiver_id = u.id) OR 
@@ -67,8 +68,9 @@ AND u.id != $1
 `
 
 type GetFriendsRow struct {
-	ID       uuid.UUID
-	Username string
+	ID           uuid.UUID
+	Username     string
+	FriendshipID uuid.UUID
 }
 
 func (q *Queries) GetFriends(ctx context.Context, senderID uuid.UUID) ([]GetFriendsRow, error) {
@@ -80,7 +82,7 @@ func (q *Queries) GetFriends(ctx context.Context, senderID uuid.UUID) ([]GetFrie
 	var items []GetFriendsRow
 	for rows.Next() {
 		var i GetFriendsRow
-		if err := rows.Scan(&i.ID, &i.Username); err != nil {
+		if err := rows.Scan(&i.ID, &i.Username, &i.FriendshipID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

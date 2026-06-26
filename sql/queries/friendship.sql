@@ -29,7 +29,8 @@ WHERE f.receiver_id = $1 AND f.friend_status = 'pending';
 -- name: GetFriends :many
 SELECT 
     u.id,
-    u.username
+    u.username,
+    f.friendship_id
 FROM friendship f
 JOIN users u ON (
     (f.sender_id = $1 AND f.receiver_id = u.id) OR 

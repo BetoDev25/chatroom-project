@@ -84,7 +84,7 @@ async function loadRooms() {
     }
 }
 
-// friends.js
+// friends.html
 
 let currentTargetUser = null;
 
@@ -206,9 +206,133 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Auto-execute when script loads
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadRooms);
-} else {
-    loadRooms();
+async function loadFriends() {
+    try {
+        const response = await fetch('/api/friend-request/accepted', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            console.error('Failed to load friends');
+            return;
+        }
+        
+        const friends = await response.json() || [];
+        const friendList = document.getElementById('friendList');
+        friendList.innerHTML = '';
+        
+        if (friends.length === 0) {
+            friendList.innerHTML = '<div style="color: #888; padding: 20px 0; text-align: center;">nobody here. try making new friends!</div>';
+            return;
+        }
+        
+        friends.forEach(friend => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 8px 0; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px;';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = friend.Username;
+            nameSpan.style.cssText = 'cursor: pointer; color: #0066cc; text-decoration: underline; flex: 1;';
+            nameSpan.className = 'friend-username';
+            nameSpan.dataset.friendshipId = friend.FriendshipID;
+            nameSpan.dataset.username = friend.Username;
+            nameSpan.onclick = function(e) {
+                e.stopPropagation();
+                toggleFriendDropdown(e, this.dataset.friendshipId, this.dataset.username);
+            };
+            
+            const chatButton = document.createElement('button');
+            chatButton.style.cssText = 'padding: 2px 8px; cursor: pointer; background: none; border: none;';
+            chatButton.onclick = () => {
+                alert(`Chat with ${friend.Username} coming soon!`);
+            };
+            
+            const chatImg = document.createElement('img');
+            chatImg.src = '/static/assets/chat.png';
+            chatImg.alt = 'chat';
+            chatImg.style.cssText = 'width: 18px; height: 18px; display: block;';
+            chatButton.appendChild(chatImg);
+            
+            div.appendChild(nameSpan);
+            div.appendChild(chatButton);
+            friendList.appendChild(div);
+        });
+    } catch (error) {
+        console.error('Error loading friends:', error);
+    }
 }
+
+function toggleFriendDropdown(event, friendshipId, username) {
+    const existing = document.querySelector('.friend-dropdown-open');
+    if (existing) {
+        existing.remove();
+    }
+    
+    const dropdown = document.createElement('div');
+    dropdown.className = 'friend-dropdown-open';
+    dropdown.style.cssText = 'position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px 0; min-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 2000;';
+    
+    const rect = event.target.getBoundingClientRect();
+    let top = rect.bottom + 5;
+    let left = rect.left;
+    
+    if (left + 120 > window.innerWidth) {
+        left = window.innerWidth - 130;
+    }
+    if (left < 10) {
+        left = 10;
+    }
+    if (top + 40 > window.innerHeight) {
+        top = rect.top - 40;
+    }
+    
+    dropdown.style.left = left + 'px';
+    dropdown.style.top = top + 'px';
+    
+    const removeOption = document.createElement('div');
+    removeOption.textContent = 'Remove Friend';
+    removeOption.style.cssText = 'padding: 8px 15px; cursor: pointer;';
+    removeOption.onmouseover = () => removeOption.style.backgroundColor = '#f0f0f0';
+    removeOption.onmouseout = () => removeOption.style.backgroundColor = 'transparent';
+    removeOption.onclick = async () => {
+        try {
+            const response = await fetch('/api/friend-request', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    friendship_id: friendshipId,
+                    status: 'rejected'
+                })
+            });
+            
+            if (response.ok) {
+                alert(`Removed ${username} as friend`);
+                dropdown.remove();
+                loadFriends(); // Reload the list
+            } else {
+                alert('Failed to remove friend');
+            }
+        } catch (error) {
+            console.error('Error removing friend:', error);
+            alert('Error removing friend');
+        }
+    };
+    
+    dropdown.appendChild(removeOption);
+    document.body.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    const closeDropdown = function(e) {
+        if (!dropdown.contains(e.target) && e.target !== nameSpan) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+    setTimeout(() => {
+        document.addEventListener('click', closeDropdown);
+    }, 10);
+}
+
+window.loadRooms = loadRooms;
+window.loadFriends = loadFriends;

@@ -490,6 +490,14 @@
                 // Load the friends.js script
                 const script = document.createElement('script');
                 script.src = '/static/js/friends.js';
+                script.onload = function() {
+                    if (typeof loadRooms === 'function') {
+                        loadRooms();
+                    }
+                    if (typeof loadFriends === 'function') {
+                        loadFriends();
+                    }
+                };
                 document.body.appendChild(script);
             } catch (error) {
                 console.error('Error loading friends panel:', error);

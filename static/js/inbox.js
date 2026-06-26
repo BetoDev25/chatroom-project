@@ -76,6 +76,9 @@ function handleRequest(friendshipId, accept) {
             alert(`Friend request ${accept ? 'accepted' : 'rejected'}!`);
             // Refresh the inbox to remove the request
             loadInbox();
+            if (accept && typeof loadFriends === 'function') {
+                loadFriends();
+            }
         } else {
             return res.json().then(data => {
                 alert(data.error || `Failed to ${accept ? 'accept' : 'reject'} friend request`);

@@ -11,8 +11,8 @@ import (
 
 func (cfg *apiConfig) handlerUpdateFriendStatus(w http.ResponseWriter, r *http.Request) {
 	type params struct {
-		FriendshipID uuid.UUID `json:"friendship_id"`
-		Status       string    `json:"status"`
+		FriendshipID string `json:"friendship_id"`
+		Status       string `json:"status"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -23,10 +23,16 @@ func (cfg *apiConfig) handlerUpdateFriendStatus(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	friendshipID, err := uuid.Parse(input.FriendshipID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid friendship ID format")
+		return
+	}
+
 	message := "Friend request accepted"
 	if input.Status == "accepted" {
 		err = cfg.db.UpdateFriendStatus(r.Context(), database.UpdateFriendStatusParams{
-			FriendshipID: input.FriendshipID,
+			FriendshipID: friendshipID,
 			FriendStatus: input.Status,
 		})
 		if err != nil {
@@ -39,7 +45,7 @@ func (cfg *apiConfig) handlerUpdateFriendStatus(w http.ResponseWriter, r *http.R
 		}
 	} else if input.Status == "rejected" {
 		message = "Friend request rejected"
-		err = cfg.db.DeleteFriendship(r.Context(), input.FriendshipID)
+		err = cfg.db.DeleteFriendship(r.Context(), friendshipID)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Couldn't delete friend request")
 			return
