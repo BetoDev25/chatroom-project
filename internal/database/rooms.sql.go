@@ -19,7 +19,7 @@ VALUES (
 	$2,
 	NOW()
 )
-RETURNING room_id, owner_id, room_name, created_at
+RETURNING room_id, owner_id, room_name, created_at, type, hashed_password
 `
 
 type CreateRoomParams struct {
@@ -35,6 +35,8 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.OwnerID,
 		&i.RoomName,
 		&i.CreatedAt,
+		&i.Type,
+		&i.HashedPassword,
 	)
 	return i, err
 }
@@ -49,7 +51,7 @@ func (q *Queries) DeleteRoom(ctx context.Context, roomID uuid.UUID) error {
 }
 
 const getRoomByName = `-- name: GetRoomByName :one
-SELECT room_id, owner_id, room_name, created_at
+SELECT room_id, owner_id, room_name, created_at, type, hashed_password
 FROM rooms
 WHERE room_name = $1
 `
@@ -62,12 +64,14 @@ func (q *Queries) GetRoomByName(ctx context.Context, roomName string) (Room, err
 		&i.OwnerID,
 		&i.RoomName,
 		&i.CreatedAt,
+		&i.Type,
+		&i.HashedPassword,
 	)
 	return i, err
 }
 
 const getRooms = `-- name: GetRooms :many
-SELECT room_id, owner_id, room_name, created_at
+SELECT room_id, owner_id, room_name, created_at, type, hashed_password
 FROM rooms
 WHERE owner_id = $1
 `
@@ -86,6 +90,8 @@ func (q *Queries) GetRooms(ctx context.Context, ownerID uuid.UUID) ([]Room, erro
 			&i.OwnerID,
 			&i.RoomName,
 			&i.CreatedAt,
+			&i.Type,
+			&i.HashedPassword,
 		); err != nil {
 			return nil, err
 		}

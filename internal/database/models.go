@@ -10,6 +10,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type Conversation struct {
+	ConversationID uuid.UUID
+	FriendshipID   uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type Friendship struct {
 	FriendshipID uuid.UUID
 	SenderID     uuid.UUID
@@ -28,11 +35,22 @@ type Message struct {
 	SentAt      time.Time
 }
 
+type PersonalMessage struct {
+	MessageID        uuid.UUID
+	ConversationID   uuid.UUID
+	UserID           uuid.UUID
+	EncryptedContent string
+	MessageType      string
+	SentAt           time.Time
+}
+
 type Room struct {
-	RoomID    uuid.UUID
-	OwnerID   uuid.UUID
-	RoomName  string
-	CreatedAt time.Time
+	RoomID         uuid.UUID
+	OwnerID        uuid.UUID
+	RoomName       string
+	CreatedAt      time.Time
+	Type           string
+	HashedPassword string
 }
 
 type Session struct {
