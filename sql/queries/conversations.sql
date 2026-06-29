@@ -8,10 +8,6 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetConvoBetweenUsers :one
-SELECT c.*
-FROM conversations c
-JOIN friendship f ON c.friendship_id = f.friendship_id
-WHERE (f.sender_id = $1 AND f.receiver_id = $2)
-   OR (f.sender_id = $2 AND f.receiver_id = $1);
-
+-- name: GetConvoByFriendshipID :one
+SELECT * FROM conversations
+WHERE friendship_id = $1;

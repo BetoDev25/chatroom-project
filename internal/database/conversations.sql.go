@@ -34,21 +34,13 @@ func (q *Queries) CreateConversation(ctx context.Context, friendshipID uuid.UUID
 	return i, err
 }
 
-const getConvoBetweenUsers = `-- name: GetConvoBetweenUsers :one
-SELECT c.conversation_id, c.friendship_id, c.created_at, c.updated_at
-FROM conversations c
-JOIN friendship f ON c.friendship_id = f.friendship_id
-WHERE (f.sender_id = $1 AND f.receiver_id = $2)
-   OR (f.sender_id = $2 AND f.receiver_id = $1)
+const getConvoByFriendshipID = `-- name: GetConvoByFriendshipID :one
+SELECT conversation_id, friendship_id, created_at, updated_at FROM conversations
+WHERE friendship_id = $1
 `
 
-type GetConvoBetweenUsersParams struct {
-	SenderID   uuid.UUID
-	ReceiverID uuid.UUID
-}
-
-func (q *Queries) GetConvoBetweenUsers(ctx context.Context, arg GetConvoBetweenUsersParams) (Conversation, error) {
-	row := q.db.QueryRowContext(ctx, getConvoBetweenUsers, arg.SenderID, arg.ReceiverID)
+func (q *Queries) GetConvoByFriendshipID(ctx context.Context, friendshipID uuid.UUID) (Conversation, error) {
+	row := q.db.QueryRowContext(ctx, getConvoByFriendshipID, friendshipID)
 	var i Conversation
 	err := row.Scan(
 		&i.ConversationID,

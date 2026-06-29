@@ -127,6 +127,8 @@ func main() {
 	mux.HandleFunc("GET /api/friend-request/{status}", apiCfg.middlewareFunc(apiCfg.handlerGetRequests))
 	mux.HandleFunc("GET /api/conversations/{friendshipID}", apiCfg.middlewareFunc(apiCfg.handlerGetConvo))
 	mux.HandleFunc("POST /api/conversations/{friendshipID}", apiCfg.handlerCreateConvo)
+	mux.HandleFunc("POST /api/priv-messages", apiCfg.middlewareFunc(apiCfg.handlerCreatePrivMessage))
+	mux.HandleFunc("GET /api/priv-messages/{convoID}", apiCfg.middlewareFunc(apiCfg.handlerGetConvoMessages))
 
 	//websocket route
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

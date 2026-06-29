@@ -244,30 +244,10 @@ async function loadFriends() {
             const chatButton = document.createElement('button');
             chatButton.style.cssText = 'padding: 2px 8px; cursor: pointer; background: none; border: none;';
             chatButton.onclick = async () => {
-                const roomName = friend.Username;
-                
-                // Check if room exists, if not create it
-                try {
-                    const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`, {
-                        credentials: 'include'
-                    });
-                    
-                    let room;
-                    if (response.status === 404) {
-                        const createRes = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include'
-                        });
-                        room = await createRes.json();
-                    } else {
-                        room = await response.json();
-                    }
-                    
-                    document.getElementById('room').value = room.RoomName;
-                    await joinRoom(true, false);
-                } catch (error) {
-                    console.error('Error creating private chat:', error);
+                if (typeof openConversation === 'function') {
+                    openConversation(friend);
+                } else {
+                    alert('Conversation system not loaded yet');
                 }
             };
             
