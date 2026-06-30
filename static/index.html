@@ -16,6 +16,16 @@
             color: white;
             border-color: #ff4444;
         }
+        .convo-tab.active {
+            background: #ff4444;
+            color: white;
+            border-color: #ff4444;
+        }
+        .notification-badge {
+            color: #ff4444;
+            font-size: 12px;
+            margin-left: 4px;
+        }
         #messages { height: 300px; width: 50%; margin: 0; box-sizing: border-box; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
         .system { color: #888; font-style: italic; }
     </style>
@@ -53,6 +63,10 @@
             gap: 4px; padding: 8px 0; border-bottom: 2px solid #ccc; margin-bottom: 10px; min-height: 40px;">
             </div>
             <!-- End of tabs -->
+            <!-- Convo Tabs -->
+            <div id="convoTabBar" style="display: flex; gap: 4px; padding: 8px 0; border-bottom: 2px solid #ccc; margin-bottom: 10px; min-height: 40px;">   
+            </div>
+            <!-- End of Convo tabs -->
             <div id="roomError" style="color: red; margin-top: 10px;"></div>
             <div id="messages"></div>
             <!-- Username dropdown -->
@@ -95,6 +109,12 @@
 
             ws.onmessage = function(event) {
                 const msg = JSON.parse(event.data);
+
+                if (msg.type === 'private') {
+                    handlePrivateMessage(msg);
+                    return;
+                }
+                
                 const div = document.createElement('div');
                 if (msg.type === 'join' || msg.type === 'leave') {
                     div.className = 'system';
@@ -103,9 +123,6 @@
                     if (msg.username === currentUser.username) {
                         div.textContent = `${msg.username}: ${msg.content}`;
                     } else {
-                        console.log('Creating clickable username for:', msg.username); // Debug
-                        console.log('toggleUserDropdown exists:', typeof window.toggleUserDropdown); // Debug
-
                         const usernameSpan = document.createElement('span');
                         usernameSpan.textContent = msg.username;
                         usernameSpan.style.cssText = 'cursor: pointer; color: #0066cc; text-decoration: underline;';
@@ -226,6 +243,10 @@
         }
 
         function sendMessage() {
+            if (currentConversation) {
+                sendConvoMessage();
+                return;
+            }
             const content = document.getElementById('message').value;
             if (content == "") {
                 return
@@ -250,6 +271,10 @@
         let currentPage = 1;
         const messagesPerPage = 50;
         async function loadMessages(resetPage = true) {
+            if (!currentRoom) {
+                console.log('loadMessages: No current room, skipping');
+                return;
+            }
             if (resetPage) {
                 currentPage = 1;
                 document.getElementById('messages').innerHTML = '';
@@ -300,7 +325,11 @@
         //load when scrolling
         document.getElementById('messages').addEventListener('scroll', function() {
             if (this.scrollTop === 0) {
-                loadMessages(false);
+                if (currentConversation) {
+                    loadConvoMessages(currentConversation.ConversationID, false);
+                } else if (currentRoom) {
+                    loadMessages(false);
+                }
             }
         });
 
@@ -338,19 +367,28 @@
         }
 
         function switchTab(roomId, save = true) {
+            console.log('switchTab called with roomId:', roomId);
             const room = tabs.find(t => t.RoomID === roomId);
             if (!room) return;
             
             activeTabId = roomId;
+            console.log('activeTabId set to:', activeTabId);
+            window.currentConversation = null;
+
+            // CLEAR convo active state
+            activeConvoTabId = null;
+            localStorage.setItem('activeConvoTabId', null);
             
-            // Update DOM classes
+            document.querySelectorAll('.convo-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`.tab[data-room-id="${roomId}"]`).classList.add('active');
             
-            // Load messages for this room
             currentRoom = room;
             loadMessages(true);
-            if (save) saveTabs();
+            if (save) {
+                saveTabs();
+                console.log('saveTabs called - activeTabId should be:', activeTabId);
+            }
         }
 
         function closeTab(roomId) {
@@ -377,53 +415,108 @@
         }
 
         function saveTabs() {
+            console.log('saveTabs called - saving room tabs only, activeTabId:', activeTabId); // Debug
             localStorage.setItem('openTabs', JSON.stringify(tabs));
             localStorage.setItem('activeTabId', activeTabId);
         }
 
-        function loadTabs() {
-            const savedTabs = localStorage.getItem('openTabs');
-            if (!savedTabs) return;
+        function loadAllTabs() {
+            console.log('loadAllTabs: ws readyState:', ws ? ws.readyState : 'ws is null');
+            // Load room tabs
+            const savedRooms = localStorage.getItem('openTabs');
+            if (savedRooms) {
+                const parsed = JSON.parse(savedRooms);
+                parsed.forEach(tabData => {
+                    if (tabData.Type === 'conversation') return;
+                    if (tabs.find(t => t.RoomID === tabData.RoomID)) return;
+                    
+                    tabs.push(tabData);
+                    const tabBar = document.getElementById('tabBar');
+                    const tab = document.createElement('button');
+                    tab.className = 'tab';
+                    tab.dataset.roomId = tabData.RoomID;
+                    tab.innerHTML = `${tabData.RoomName} <span class="close" data-room-id="${tabData.RoomID}">✕</span>`;
+                    tab.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('close')) {
+                            e.stopPropagation();
+                            closeTab(tabData.RoomID);
+                            return;
+                        }
+                        switchTab(tabData.RoomID);
+                    });
+                    tabBar.appendChild(tab);
+                });
+            }
             
-            const parsed = JSON.parse(savedTabs);
+            // Load convo tabs
+            const savedConvos = localStorage.getItem('convoTabs');
+            if (savedConvos) {
+                const parsed = JSON.parse(savedConvos);
+                parsed.forEach(tabData => {
+                    if (convoTabs.find(t => t.ConversationID === tabData.ConversationID)) return;
+                    
+                    convoTabs.push(tabData);
+                    const tabBar = document.getElementById('convoTabBar');
+                    const tab = document.createElement('button');
+                    tab.className = 'convo-tab';
+                    tab.dataset.convoId = tabData.ConversationID;
+                    tab.innerHTML = `${tabData.DisplayName} <span class="close" data-convo-id="${tabData.ConversationID}">✕</span>`;
+                    tab.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('close')) {
+                            e.stopPropagation();
+                            closeConvoTab(tabData.ConversationID);
+                            return;
+                        }
+                        switchConvoTab(tabData.ConversationID);
+                    });
+                    tabBar.appendChild(tab);
+                });
+            }
             
-            // Add all tabs without saving
-            parsed.forEach(roomData => {
-                const roomId = roomData.RoomID;
-                const roomName = roomData.RoomName;
-                
-                // Check if tab already exists
-                if (tabs.find(t => t.RoomID === roomId)) {
+            // Restore active tab - CHECK ROOM FIRST
+            const savedActiveRoom = localStorage.getItem('activeTabId');
+            if (savedActiveRoom && tabs.find(t => t.RoomID === savedActiveRoom)) {
+                switchTab(savedActiveRoom, false);
+                return;
+            }
+            
+            // If no room was active, check convo
+            const savedActiveConvo = localStorage.getItem('activeConvoTabId');
+            if (savedActiveConvo && savedActiveConvo !== 'null') {
+                const convoExists = convoTabs.find(t => t.ConversationID === savedActiveConvo);
+                if (convoExists) {
+                    // Set currentConversation before switching
+                    currentConversation = convoExists;
+                    
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: 'private_join',
+                            conversation_id: savedActiveConvo
+                        }));
+                        switchConvoTab(savedActiveConvo);
+                    } else {
+                        console.log('loadAllTabs: Waiting for WebSocket to open...');
+                        const checkWs = setInterval(() => {
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                clearInterval(checkWs);
+                                console.log('loadAllTabs: WebSocket open, joining conversation');
+                                ws.send(JSON.stringify({
+                                    type: 'private_join',
+                                    conversation_id: savedActiveConvo
+                                }));
+                                switchConvoTab(savedActiveConvo);
+                            }
+                        }, 100);
+                    }
                     return;
                 }
-                
-                tabs.push(roomData);
-                
-                // Create DOM element
-                const tabBar = document.getElementById('tabBar');
-                const tab = document.createElement('button');
-                tab.className = 'tab';
-                tab.dataset.roomId = roomId;
-                tab.innerHTML = `${roomName} <span class="close" data-room-id="${roomId}">✕</span>`;
-                
-                tab.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('close')) {
-                        e.stopPropagation();
-                        closeTab(roomId);
-                        return;
-                    }
-                    switchTab(roomId);
-                });
-                
-                tabBar.appendChild(tab);
-            });
+            }
             
-            // Restore active tab
-            const savedActive = localStorage.getItem('activeTabId');
-            if (savedActive && tabs.find(t => t.RoomID === savedActive)) {
-                switchTab(savedActive, false);
-            } else if (tabs.length > 0) {
+            // No active tab saved - pick the first available
+            if (tabs.length > 0) {
                 switchTab(tabs[0].RoomID, false);
+            } else if (convoTabs.length > 0) {
+                switchConvoTab(convoTabs[0].ConversationID);
             }
         }
 
@@ -450,7 +543,7 @@
                 currentUser = user;
                 connect();
 
-                loadTabs();
+                loadAllTabs();
                 await loadFriendsPanel();
 
                 if (tabs.length === 0) {

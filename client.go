@@ -24,11 +24,12 @@ const (
 
 // Client represents a single WebSocket connection
 type Client struct {
-	hub      *Hub
-	conn     *websocket.Conn
-	send     chan []byte //buffered channel
-	room     string
-	username string
+	hub            *Hub
+	conn           *websocket.Conn
+	send           chan []byte //buffered channel
+	room           string
+	username       string
+	conversationID string
 }
 
 // pumps messages from the WebSocket to the Hub
@@ -73,6 +74,20 @@ func (c *Client) readPump() {
 			c.hub.joinRoom <- &RoomRequest{client: c, room: msg.Room, skipBroadcast: skipBroadcast}
 		case "leave":
 			c.hub.leaveRoom <- &RoomRequest{client: c, room: msg.Room}
+		case "private_join":
+			if msg.ConversationID != "" {
+				c.hub.joinConversation(c, msg.ConversationID)
+			}
+		case "private_leave":
+			if msg.ConversationID != "" {
+				c.hub.leaveConversation(c)
+			}
+		case "private":
+			log.Printf("Received private message from %s: %s", c.username, msg.Content)
+			if msg.ConversationID != "" {
+				msg.Username = c.username
+				c.hub.broadcastPrivate(&msg)
+			}
 		case "message":
 			if c.room != "" {
 				msg.Room = c.room

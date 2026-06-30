@@ -246,8 +246,6 @@ async function loadFriends() {
             chatButton.onclick = async () => {
                 if (typeof openConversation === 'function') {
                     openConversation(friend);
-                } else {
-                    alert('Conversation system not loaded yet');
                 }
             };
             

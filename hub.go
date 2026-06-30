@@ -25,6 +25,9 @@ type Hub struct {
 	//room name to clients mapping
 	rooms map[string]map[*Client]bool
 
+	//convo name to clients mapping
+	conversations map[string]map[*Client]bool
+
 	//inbound messages to broadcast
 	broadcast chan *Message
 
@@ -43,13 +46,14 @@ type Hub struct {
 
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan *Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		joinRoom:   make(chan *RoomRequest),
-		leaveRoom:  make(chan *RoomRequest),
-		clients:    make(map[*Client]bool),
-		rooms:      make(map[string]map[*Client]bool),
+		broadcast:     make(chan *Message),
+		register:      make(chan *Client),
+		unregister:    make(chan *Client),
+		joinRoom:      make(chan *RoomRequest),
+		leaveRoom:     make(chan *RoomRequest),
+		clients:       make(map[*Client]bool),
+		rooms:         make(map[string]map[*Client]bool),
+		conversations: make(map[string]map[*Client]bool),
 	}
 }
 
@@ -65,6 +69,9 @@ func (h *Hub) run() {
 				//remove from current room if in one
 				if client.room != "" {
 					h.removeFromRoom(client, client.room)
+				}
+				if client.conversationID != "" {
+					h.leaveConversation(client)
 				}
 				delete(h.clients, client)
 				close(client.send)
@@ -159,6 +166,58 @@ func (h *Hub) broadcastToRoom(msg *Message) {
 			close(client.send)
 			delete(clients, client)
 			delete(h.clients, client)
+		}
+	}
+}
+
+func (h *Hub) joinConversation(client *Client, conversationID string) {
+	if client.conversationID != "" {
+		h.leaveConversation(client)
+	}
+
+	if h.conversations[conversationID] == nil {
+		h.conversations[conversationID] = make(map[*Client]bool)
+	}
+	h.conversations[conversationID][client] = true
+	client.conversationID = conversationID
+}
+
+func (h *Hub) leaveConversation(client *Client) {
+	if client.conversationID == "" {
+		return
+	}
+	if clients, ok := h.conversations[client.conversationID]; ok {
+		delete(clients, client)
+		if len(clients) == 0 {
+			delete(h.conversations, client.conversationID)
+		}
+		client.conversationID = ""
+	}
+}
+
+func (h *Hub) broadcastPrivate(msg *Message) {
+	clients, ok := h.conversations[msg.ConversationID]
+	if !ok {
+		log.Printf("No clients in conversation: %s", msg.ConversationID) // Debug
+		return
+	}
+
+	log.Printf("Broadcasting to %d clients in conversation %s", len(clients), msg.ConversationID) // Debug
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("error marshaling private message: %v", err)
+		return
+	}
+
+	for client := range clients {
+		select {
+		case client.send <- data:
+			log.Printf("Sent to client: %s", client.username) // Debug
+		default:
+			log.Printf("Client %s buffer full, disconnecting", client.username) // Debug
+			close(client.send)
+			delete(clients, client)
 		}
 	}
 }
