@@ -219,6 +219,12 @@ async function loadFriends() {
         
         const friends = await response.json() || [];
         const friendList = document.getElementById('friendList');
+
+        if (!friendList) {
+            console.error('friendList element not found!');
+            return;
+        }
+
         friendList.innerHTML = '';
         
         if (friends.length === 0) {
@@ -326,7 +332,7 @@ function toggleFriendDropdown(event, friendshipId, username) {
     
     // Close dropdown when clicking outside
     const closeDropdown = function(e) {
-        if (!dropdown.contains(e.target) && e.target !== nameSpan) {
+        if (!dropdown.contains(e.target)) {
             dropdown.remove();
             document.removeEventListener('click', closeDropdown);
         }

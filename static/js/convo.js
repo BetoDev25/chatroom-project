@@ -28,8 +28,6 @@ window.openConversation = async function(friend) {
                 type: 'private_join',
                 conversation_id: conversation.ConversationID
             }));
-        } else {
-            console.log('openConversation: WebSocket not open, readyState:', ws ? ws.readyState : 'ws is null'); // Debug
         }
         
         addConvoTab(conversation, friend.Username);
@@ -80,9 +78,22 @@ function addConvoTab(conversation, displayName) {
 }
 
 function switchConvoTab(convoId) {
-    console.log('Switching to convo tab:', convoId);
     const tab = convoTabs.find(t => t.ConversationID === convoId);
     if (!tab) return;
+
+    let tabElement = document.querySelector(`.convo-tab[data-convo-id="${convoId}"]`);
+
+    if (tab.UnreadCount > 0) {
+        tab.UnreadCount = 0;
+        tabElement = document.querySelector(`.convo-tab[data-convo-id="${convoId}"]`);
+    }
+    if (tabElement) {
+        tabElement.innerHTML = `${tab.DisplayName} <span class="close" data-convo-id="${convoId}">✕</span>`;
+        tabElement.querySelector('.close').addEventListener('click', (e) =>  {
+            e.stopPropagation();
+            closeConvoTab(convoId);
+        });
+    }
 
     activeConvoTabId = convoId;
     currentConversation = tab;
@@ -96,14 +107,17 @@ function switchConvoTab(convoId) {
     document.querySelectorAll('.convo-tab').forEach(t => t.classList.remove('active'));
     document.querySelector(`.convo-tab[data-convo-id="${convoId}"]`).classList.add('active');
 
+    isLoadingMessages = false;
+    convoPage = 1;
+
     if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('switchConvoTab: Joining conversation:', convoId);
         ws.send(JSON.stringify({
             type: 'private_join',
             conversation_id: convoId
         }));
     }
 
+    document.getElementById('messages').innerHTML = '';
     loadConvoMessages(convoId, true);
     saveConvoTabs();
 }
@@ -146,11 +160,14 @@ function closeConvoTab(convoId) {
 }
 
 async function loadConvoMessages(convoId, resetPage = true) {
+    const messagesDiv = document.getElementById('messages');
+    
     if (resetPage) {
         convoPage = 1;
-        document.getElementById('messages').innerHTML = '';
+        messagesDiv.innerHTML = '';
     }
 
+    
     const response = await fetch(`/api/priv-messages/${convoId}?page=${convoPage}&limit=${convoMessagesPerPage}`, {
         credentials: 'include'
     });
@@ -160,38 +177,38 @@ async function loadConvoMessages(convoId, resetPage = true) {
         return;
     }
 
-    const messages = await response.json();
-    const messagesDiv = document.getElementById('messages');
+    let messages = await response.json();
     
-    messages.forEach(msg => {
-        const div = document.createElement('div');
-        const username = msg.Username || msg.username;
-        const content = msg.EncryptedContent;
-        
-        if (username === currentUser.username) {
+    // Reverse to show oldest first (chronological order)
+    messages = messages.reverse();
+    
+    if (resetPage) {
+        // First page (newest messages) - append all
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            const username = msg.Username || msg.username;
+            const content = msg.Content || msg.content || msg.EncryptedContent;
             div.textContent = `${username}: ${content}`;
-        } else {
-            const usernameSpan = document.createElement('span');
-            usernameSpan.textContent = username;
-            usernameSpan.style.cssText = 'cursor: pointer; color: #0066cc; text-decoration: underline;';
-            usernameSpan.className = 'chat-username';
-            usernameSpan.dataset.username = username;
-            usernameSpan.onclick = function(e) {
-                e.stopPropagation();
-                window.toggleUserDropdown(e, this.dataset.username);
-            };
-
-            const contentSpan = document.createElement('span');
-            contentSpan.textContent = `: ${content}`;
-
-            div.appendChild(usernameSpan);
-            div.appendChild(contentSpan);
-        }
+            messagesDiv.appendChild(div);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom (newest)
+    } else {
+        // Loading older messages - prepend at top
+        const oldScrollHeight = messagesDiv.scrollHeight;
         
-        messagesDiv.appendChild(div);
-    });
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            const username = msg.Username || msg.username;
+            const content = msg.Content || msg.content || msg.EncryptedContent;
+            div.textContent = `${username}: ${content}`;
+            messagesDiv.prepend(div);
+        });
+        
+        // Keep scroll position
+        const newScrollHeight = messagesDiv.scrollHeight;
+        messagesDiv.scrollTop = newScrollHeight - oldScrollHeight;
+    }
     
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
     convoPage++;
 }
 
@@ -203,16 +220,15 @@ function sendConvoMessage() {
         return;
     }
     
-    console.log('ws readyState:', ws ? ws.readyState : 'ws is null'); // Debug
-    
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
             type: 'private',
             content: content,
-            conversation_id: currentConversation.ConversationID
+            conversation_id: currentConversation.ConversationID,
+            recipient_username: currentConversation.DisplayName
         }));
     } else {
-        console.error('WebSocket is not open!'); // Debug
+        console.error('WebSocket is not open!');
     }
     
     input.value = '';
@@ -226,9 +242,11 @@ function sendConvoMessage() {
             user_id: currentUser.id,
             content: content
         })
-    }).catch(err => {
-        console.error('Failed to archive:', err);
-    });
+    })
+    .then(res => {
+        return res.json();
+    })
+    .catch(err => console.error('Failed to archive:', err));
 }
 
 function handlePrivateMessage(msg) {
@@ -242,8 +260,6 @@ function handlePrivateMessage(msg) {
 }
 
 function saveConvoTabs() {
-    console.log('Saving convo tabs:', convoTabs); // Debug
-    console.log('Saving activeConvoTabId:', activeConvoTabId); // Debug
     localStorage.setItem('convoTabs', JSON.stringify(convoTabs));
     localStorage.setItem('activeConvoTabId', activeConvoTabId);
 }
@@ -326,7 +342,8 @@ function addConvoTabSilently(conversationId, displayName) {
     
     const tabData = {
         ConversationID: conversationId,
-        DisplayName: displayName
+        DisplayName: displayName,
+        UnreadCount: 1
     };
     convoTabs.push(tabData);
     
@@ -334,7 +351,7 @@ function addConvoTabSilently(conversationId, displayName) {
     const tab = document.createElement('button');
     tab.className = 'convo-tab';
     tab.dataset.convoId = conversationId;
-    tab.innerHTML = `${displayName} <span class="close" data-convo-id="${conversationId}">✕</span>`;
+    tab.innerHTML = `${displayName} (<span class="unread-count">1</span>) <span class="close" data-convo-id="${conversationId}">✕</span>`;
     
     tab.addEventListener('click', (e) => {
         if (e.target.classList.contains('close')) {

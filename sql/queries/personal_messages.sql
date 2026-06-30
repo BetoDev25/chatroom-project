@@ -17,6 +17,6 @@ SELECT
 FROM personal_messages p
 JOIN users ON p.user_id = users.id
 WHERE p.conversation_id = $1
-ORDER BY p.sent_at ASC
+ORDER BY p.sent_at DESC
 LIMIT $2 OFFSET $3;
 

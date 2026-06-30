@@ -105,13 +105,56 @@
                 if (currentRoom && currentRoom.RoomName) {
                     ws.send(JSON.stringify({type: 'join', room: currentRoom.RoomName, skipBroadcast: true}));
                 }
+
+                // Join all convos
+                const savedConvos = localStorage.getItem('convoTabs');
+                if (savedConvos) {
+                    const convos = JSON.parse(savedConvos);
+                    convos.forEach(convo => {
+                        ws.send(JSON.stringify({
+                            type: 'private_join',
+                            conversation_id: convo.ConversationID
+                        }));
+                    });
+                }
             };
 
             ws.onmessage = function(event) {
                 const msg = JSON.parse(event.data);
 
-                if (msg.type === 'private') {
-                    handlePrivateMessage(msg);
+                if (msg.Type === 'private') {
+                    ws.send(JSON.stringify({
+                        type: 'private_join',
+                        conversation_id: msg.conversation_id
+                    }));
+
+                    const existingTab = convoTabs.find(t => t.ConversationID === msg.conversation_id);
+
+                    if (!existingTab) {
+                        addConvoTabSilently(msg.conversation_id, msg.username);
+                        return;
+                    }
+
+                    const isActive = currentConversation && currentConversation.ConversationID === msg.conversation_id;
+
+                    if (isActive) {
+                        handlePrivateMessage(msg);
+                    }
+                    
+                    let shouldUpdateTab = false;
+                    if (msg.Username !== currentUser.username && !isActive) {
+                        existingTab.UnreadCount = (existingTab.UnreadCount || 0) + 1;
+                        saveConvoTabs()
+                        shouldUpdateTab = true;
+                    }
+                    
+                    // Only update tab if there's a new unread count
+                    if (shouldUpdateTab) {
+                        const tabElement = document.querySelector(`.convo-tab[data-convo-id="${msg.conversation_id}"]`);
+                        if (tabElement) {
+                            tabElement.innerHTML = `${existingTab.DisplayName} (<span class="unread-count">${existingTab.UnreadCount}</span>) <span class="close" data-convo-id="${msg.conversation_id}">✕</span>`;
+                        }
+                    }
                     return;
                 }
                 
@@ -272,7 +315,6 @@
         const messagesPerPage = 50;
         async function loadMessages(resetPage = true) {
             if (!currentRoom) {
-                console.log('loadMessages: No current room, skipping');
                 return;
             }
             if (resetPage) {
@@ -324,12 +366,11 @@
         }
         //load when scrolling
         document.getElementById('messages').addEventListener('scroll', function() {
-            if (this.scrollTop === 0) {
-                if (currentConversation) {
-                    loadConvoMessages(currentConversation.ConversationID, false);
-                } else if (currentRoom) {
-                    loadMessages(false);
-                }
+            if (this.scrollTop < 50 && currentConversation && !isLoadingMessages && this.children.length > 0) {
+                isLoadingMessages = true;
+                loadConvoMessages(currentConversation.ConversationID, false).finally(() => {
+                    isLoadingMessages = false;
+                });
             }
         });
 
@@ -367,12 +408,10 @@
         }
 
         function switchTab(roomId, save = true) {
-            console.log('switchTab called with roomId:', roomId);
             const room = tabs.find(t => t.RoomID === roomId);
             if (!room) return;
             
             activeTabId = roomId;
-            console.log('activeTabId set to:', activeTabId);
             window.currentConversation = null;
 
             // CLEAR convo active state
@@ -387,7 +426,6 @@
             loadMessages(true);
             if (save) {
                 saveTabs();
-                console.log('saveTabs called - activeTabId should be:', activeTabId);
             }
         }
 
@@ -415,13 +453,11 @@
         }
 
         function saveTabs() {
-            console.log('saveTabs called - saving room tabs only, activeTabId:', activeTabId); // Debug
             localStorage.setItem('openTabs', JSON.stringify(tabs));
             localStorage.setItem('activeTabId', activeTabId);
         }
 
         function loadAllTabs() {
-            console.log('loadAllTabs: ws readyState:', ws ? ws.readyState : 'ws is null');
             // Load room tabs
             const savedRooms = localStorage.getItem('openTabs');
             if (savedRooms) {
@@ -453,13 +489,18 @@
             if (savedConvos) {
                 const parsed = JSON.parse(savedConvos);
                 parsed.forEach(tabData => {
-                    if (convoTabs.find(t => t.ConversationID === tabData.ConversationID)) return;
+                    if (window.convoTabs && window.convoTabs.find(t => t.ConversationID === tabData.ConversationID)) return;
                     
                     convoTabs.push(tabData);
                     const tabBar = document.getElementById('convoTabBar');
                     const tab = document.createElement('button');
                     tab.className = 'convo-tab';
                     tab.dataset.convoId = tabData.ConversationID;
+                    if (tabData.UnreadCount && tabData.UnreadCount > 0) {
+                        tab.innerHTML = `${tabData.DisplayName} (<span class="unread-count">${tabData.UnreadCount}</span>) <span class="close" data-convo-id="${tabData.ConversationID}">✕</span>`;
+                    } else {
+                        
+                    }
                     tab.innerHTML = `${tabData.DisplayName} <span class="close" data-convo-id="${tabData.ConversationID}">✕</span>`;
                     tab.addEventListener('click', (e) => {
                         if (e.target.classList.contains('close')) {
@@ -495,11 +536,9 @@
                         }));
                         switchConvoTab(savedActiveConvo);
                     } else {
-                        console.log('loadAllTabs: Waiting for WebSocket to open...');
                         const checkWs = setInterval(() => {
                             if (ws && ws.readyState === WebSocket.OPEN) {
                                 clearInterval(checkWs);
-                                console.log('loadAllTabs: WebSocket open, joining conversation');
                                 ws.send(JSON.stringify({
                                     type: 'private_join',
                                     conversation_id: savedActiveConvo

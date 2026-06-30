@@ -196,13 +196,25 @@ func (h *Hub) leaveConversation(client *Client) {
 }
 
 func (h *Hub) broadcastPrivate(msg *Message) {
-	clients, ok := h.conversations[msg.ConversationID]
-	if !ok {
-		log.Printf("No clients in conversation: %s", msg.ConversationID) // Debug
-		return
+	var recipientClient *Client
+	for client := range h.clients {
+		if client.username == msg.Username {
+			continue
+		}
+		recipientClient = client
+		break
 	}
 
-	log.Printf("Broadcasting to %d clients in conversation %s", len(clients), msg.ConversationID) // Debug
+	if recipientClient != nil {
+		if recipientClient.conversationID != msg.ConversationID {
+			h.joinConversation(recipientClient, msg.ConversationID)
+			log.Printf("Auto-joined %s to conversation %s", recipientClient.username, msg.ConversationID)
+		}
+	}
+	clients, ok := h.conversations[msg.ConversationID]
+	if !ok {
+		return
+	}
 
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -215,7 +227,6 @@ func (h *Hub) broadcastPrivate(msg *Message) {
 		case client.send <- data:
 			log.Printf("Sent to client: %s", client.username) // Debug
 		default:
-			log.Printf("Client %s buffer full, disconnecting", client.username) // Debug
 			close(client.send)
 			delete(clients, client)
 		}
