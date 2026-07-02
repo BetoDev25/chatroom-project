@@ -17,6 +17,6 @@ SELECT
 FROM message
 JOIN users ON message.user_id = users.id
 WHERE message.room_id = $1
-ORDER BY message.sent_at ASC
+ORDER BY message.sent_at DESC
 LIMIT $2 OFFSET $3;
 

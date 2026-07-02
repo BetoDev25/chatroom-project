@@ -1,21 +1,24 @@
 <h1>Login</h1>
-<input type="text" id="username" placeholder="username" onkeypress="if(event.key==='Enter')login()">
-<div style="height: 10px;"></div>
+<form onsubmit="login(event)">
+    <input type="text" id="username" placeholder="username" onkeypress="if(event.key==='Enter')login(event)">
+    <div style="height: 10px;"></div>
 
-<input type="password" id="password" placeholder="password" onkeypress="if(event.key==='Enter')login()">
-<div style="height: 10px;"></div>
+    <input type="password" id="password" placeholder="password" onkeypress="if(event.key==='Enter')login(event)">
+    <div style="height: 10px;"></div>
 
-<button onclick="login()">Log in</button>
-<div id="message" style="margin-top: 10px; color: #333;"></div>
-<p style="margin-top: 10px;">
-    <a href="/signup.html">create new user</a>
-</p>
+    <button type="submit">Log in</button>
+    <div id="message" style="margin-top: 10px; color: #333;"></div>
+    <p style="margin-top: 10px;">
+        <a href="/signup.html">create new user</a>
+    </p>
+</form>
 
 <script>
     localStorage.removeItem('lastRoom');
     localStorage.removeItem('lastRoomData');
-    console.log('Login function defined:', typeof login);
-    async function login() {
+    async function login(event) {
+        event.preventDefault();
+        console.log('login() called');
         const usernameVal = document.getElementById('username').value;
         const passwordVal = document.getElementById('password').value;
         const messageDiv = document.getElementById('message');

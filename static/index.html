@@ -99,7 +99,7 @@
 
         function connect() {
             if (!currentUser) return;
-            ws = new WebSocket(`wss://localhost:8080/ws?username=${currentUser.username}`);
+            ws = new WebSocket(`wss://${window.location.hostname}:8080/ws?username=${currentUser.username}`);
 
             ws.onopen = function() {
                 if (currentRoom && currentRoom.RoomName) {
@@ -311,33 +311,64 @@
             })
         }
 
-        let currentPage = 1;
-        const messagesPerPage = 50;
-        async function loadMessages(resetPage = true) {
-            if (!currentRoom) {
-                return;
-            }
-            if (resetPage) {
-                currentPage = 1;
-                document.getElementById('messages').innerHTML = '';
+            let currentPage = 1;
+            const messagesPerPage = 50;
+            let isLoadingMessages = false;
+
+            async function loadMessages(resetPage = true) {
+                if (!currentRoom) {
+                    return;
+                }
+                
+                const messagesDiv = document.getElementById('messages');
+                
+                if (resetPage) {
+                    currentPage = 1;
+                    messagesDiv.innerHTML = '';
+                }
+
+                const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
+                
+                if (!response.ok) {
+                    console.error('Failed to load messages');
+                    return;
+                }
+
+                let messages = await response.json();
+                // Reverse to show oldest first (newest at bottom)
+                messages = messages.reverse();
+                
+                if (resetPage) {
+                    messages.forEach(msg => {
+                        const div = createMessageElement(msg);
+                        messagesDiv.appendChild(div);
+                    });
+                    setTimeout(() => {
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }, 10);
+                } else {
+                    // Loading older messages: prepend them at the top
+                    const oldScrollHeight = messagesDiv.scrollHeight;
+                    
+                    messages.forEach(msg => {
+                        const div = createMessageElement(msg);
+                        messagesDiv.prepend(div);
+                    });
+                    
+                    // Keep scroll position
+                    const newScrollHeight = messagesDiv.scrollHeight;
+                    messagesDiv.scrollTop = newScrollHeight - oldScrollHeight;
+                }
+                
+                currentPage++;
             }
 
-            const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
-            
-            if (!response.ok) {
-                console.error('Failed to load messages');
-                return;
-            }
-
-            const messages = await response.json();
-            
-            messages.forEach(msg => {
+            function createMessageElement(msg) {
                 const div = document.createElement('div');
                 if (msg.message_type === 'system') {
                     div.className = 'system';
                     div.textContent = msg.content;
                 } else {
-                    // Don't make the current user's own username clickable
                     if (msg.Username === currentUser.username) {
                         div.textContent = `${msg.Username}: ${msg.Content}`;
                     } else {
@@ -353,26 +384,22 @@
 
                         const contentSpan = document.createElement('span');
                         contentSpan.textContent = `: ${msg.Content}`;
-
                         div.appendChild(usernameSpan);
                         div.appendChild(contentSpan);
                     }
                 }
-                document.getElementById('messages').appendChild(div);
-            });
-            
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-            currentPage++;
-        }
-        //load when scrolling
-        document.getElementById('messages').addEventListener('scroll', function() {
-            if (this.scrollTop < 50 && currentConversation && !isLoadingMessages && this.children.length > 0) {
-                isLoadingMessages = true;
-                loadConvoMessages(currentConversation.ConversationID, false).finally(() => {
-                    isLoadingMessages = false;
-                });
+                return div;
             }
-        });
+
+            //load when scrolling
+            document.getElementById('messages').addEventListener('scroll', function() {
+                if (this.scrollTop < 50 && currentRoom && !isLoadingMessages) {
+                    isLoadingMessages = true;
+                    loadMessages(false).finally(() => {
+                        isLoadingMessages = false;
+                    });
+                }
+            });
 
         function addTab(roomData, save = true) {
             const roomId = roomData.RoomID;

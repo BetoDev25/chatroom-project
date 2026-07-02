@@ -61,9 +61,11 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		Expires:  session.ExpiresAt,
 		MaxAge:   maxAge,
 		HttpOnly: true,
-		Domain:   "go-chat/duckdns.org",
+		Domain:   "go-chat.duckdns.org",
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode, //temporary for localhost testing
+		//Secure: false, //for local testing
+		SameSite: http.SameSiteStrictMode,
+		//SameSite: http.SameSiteLaxMode, //for local testing
 	}
 	err = cookies.Write(w, *sessionCookie)
 	if err != nil {

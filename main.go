@@ -141,6 +141,7 @@ func main() {
 
 	fmt.Println("Server is running on port" + server.Addr)
 
+	fmt.Println("DB_URL:", os.Getenv("DB_URL"))
 	// Start server on port specified above
 	log.Fatal(server.ListenAndServe())
 }
