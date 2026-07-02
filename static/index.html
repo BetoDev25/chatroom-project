@@ -345,6 +345,7 @@
                     });
                     setTimeout(() => {
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        console.log('Scrolled to bottom:', messagesDiv.scrollTop); // Debug
                     }, 10);
                 } else {
                     // Loading older messages: prepend them at the top
