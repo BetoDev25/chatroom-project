@@ -55,16 +55,15 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 
 	//Secure session cookie
 	sessionCookie := &http.Cookie{
-		Name:    "session_token",
-		Value:   token,
-		Path:    "/",
-		Expires: session.ExpiresAt,
-		MaxAge:  maxAge,
-		//MaxAge:   int(time.Until(session.ExpiresAt).Seconds()),
+		Name:     "session_token",
+		Value:    token,
+		Path:     "/",
+		Expires:  session.ExpiresAt,
+		MaxAge:   maxAge,
 		HttpOnly: true,
-		//Domain: temporarily excluded for localhost testing
-		Secure:   false,                //temporary for localhost testing
-		SameSite: http.SameSiteLaxMode, //temporary for localhost testing
+		Domain:   "go-chat/duckdns.org",
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode, //temporary for localhost testing
 	}
 	err = cookies.Write(w, *sessionCookie)
 	if err != nil {
