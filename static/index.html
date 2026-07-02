@@ -47,7 +47,7 @@
     </div>
     <!-- End of container code -->
 <!-- test line 1-->
-    <h1>Go Chat Project 1.0.1</h1>
+    <h1>Go Chat Project 1.0.2</h1>
     <h2 id="welcome"></h2>
     <div class="container">
         <div class="chat-section">
@@ -308,7 +308,12 @@
                 })
             }).catch(err => {
                 console.error('Failed to archive message:', err);
-            })
+            });
+
+            const messagesDiv = document.getElementById('messages');
+            setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 50);
         }
 
             let currentPage = 1;
@@ -392,10 +397,12 @@
             }
 
             //load when scrolling
+            let scrollTimeout;
             document.getElementById('messages').addEventListener('scroll', function() {
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
                     if (this.scrollTop < 50 && currentRoom && !isLoadingMessages) {
+                        console.log('Loading older messages, currentPage:', currentPage); // Debug
                         isLoadingMessages = true;
                         loadMessages(false).finally(() => {
                             isLoadingMessages = false;
