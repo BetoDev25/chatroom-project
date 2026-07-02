@@ -393,12 +393,15 @@
 
             //load when scrolling
             document.getElementById('messages').addEventListener('scroll', function() {
-                if (this.scrollTop < 50 && currentRoom && !isLoadingMessages) {
-                    isLoadingMessages = true;
-                    loadMessages(false).finally(() => {
-                        isLoadingMessages = false;
-                    });
-                }
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    if (this.scrollTop < 50 && currentRoom && !isLoadingMessages) {
+                        isLoadingMessages = true;
+                        loadMessages(false).finally(() => {
+                            isLoadingMessages = false;
+                        });
+                    }
+                }, 200);
             });
 
         function addTab(roomData, save = true) {
