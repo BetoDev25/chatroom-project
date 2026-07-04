@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -40,7 +41,10 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 type apiConfig struct {
-	db *database.Queries
+	db             *database.Queries
+	cookieDomain   string
+	cookieSecure   bool
+	cookieSameSite http.SameSite
 }
 
 var upgrader = websocket.Upgrader{
@@ -79,7 +83,32 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	godotenv.Load()
+	env := flag.String("env", "production", "Environment: development or production")
+	flag.Parse()
+	var envFile string
+	switch *env {
+	case "production":
+		envFile = ".env.prod"
+	case "development":
+		envFile = ".env.dev"
+	default:
+		envFile = ".env.prod"
+	}
+
+	log.Printf("Loading env file: %s", envFile) // Debug
+
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Printf("Warning: %s file not found, using system environment variables", envFile)
+	}
+
+	// After loading the .env file
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
+	log.Printf("Starting server in %s mode", environment)
+
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL environment variable is not set")
@@ -88,16 +117,40 @@ func main() {
 	if err != nil {
 		log.Fatal("Error opening database: ", err)
 	}
+
+	if err = db.Ping(); err != nil {
+		log.Fatal("Error connecting to database: ", err)
+	}
 	dbQueries := database.New(db)
 
 	//setup Hub
 	hub := newHub()
 	go hub.run()
 
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	if cookieDomain == "" {
+		cookieDomain = "localhost"
+	}
+
+	cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
+
+	cookieSameSite := http.SameSiteLaxMode
+	switch os.Getenv("COOKIE_SAMESITE") {
+	case "Strict":
+		cookieSameSite = http.SameSiteStrictMode
+	case "Lax":
+		cookieSameSite = http.SameSiteLaxMode
+	case "None":
+		cookieSameSite = http.SameSiteNoneMode
+	}
+
 	//setup Routes
 	mux := http.NewServeMux()
 	apiCfg := apiConfig{
-		db: dbQueries,
+		db:             dbQueries,
+		cookieDomain:   cookieDomain,
+		cookieSecure:   cookieSecure,
+		cookieSameSite: cookieSameSite,
 	}
 	server := http.Server{
 		Handler: mux,
