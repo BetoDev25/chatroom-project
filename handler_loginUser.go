@@ -65,6 +65,9 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		Secure:   cfg.cookieSecure,
 		SameSite: cfg.cookieSameSite,
 	}
+	log.Printf("Domain: %s", cfg.cookieDomain)
+	log.Printf("Secure: %t", cfg.cookieSecure)
+	log.Printf("SameSite: %d", cfg.cookieSameSite)
 	err = cookies.Write(w, *sessionCookie)
 	if err != nil {
 		log.Printf("Error setting cookie: %v", err)

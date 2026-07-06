@@ -101,7 +101,9 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: %s file not found, using system environment variables", envFile)
 	}
-
+	log.Printf("COOKIE_DOMAIN: '%s'", os.Getenv("COOKIE_DOMAIN"))
+	log.Printf("COOKIE_SECURE: '%s'", os.Getenv("COOKIE_SECURE"))
+	log.Printf("COOKIE_SAMESITE: '%s'", os.Getenv("COOKIE_SAMESITE"))
 	// After loading the .env file
 	environment := os.Getenv("ENVIRONMENT")
 	if environment == "" {
@@ -117,6 +119,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error opening database: ", err)
 	}
+	log.Printf("DB_URL: %s", dbURL)
 
 	if err = db.Ping(); err != nil {
 		log.Fatal("Error connecting to database: ", err)
@@ -192,9 +195,6 @@ func main() {
 		http.FileServer(http.Dir("./static")).ServeHTTP(w, r)
 	}))
 
-	fmt.Println("Server is running on port" + server.Addr)
-
-	fmt.Println("DB_URL:", os.Getenv("DB_URL"))
 	// Start server on port specified above
 	log.Fatal(server.ListenAndServe())
 }
