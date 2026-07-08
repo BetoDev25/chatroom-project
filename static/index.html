@@ -47,7 +47,7 @@
     </div>
     <!-- End of container code -->
 <!-- test line 1-->
-    <h1>Go Chat Project 1.0.2</h1>
+    <h1>Rooms to Chat 1.0.3</h1>
     <h2 id="welcome"></h2>
     <div class="container">
         <div class="chat-section">
@@ -100,7 +100,7 @@
 
         function connect() {
             if (!currentUser) return;
-            ws = new WebSocket(`ws://${window.location.host}/ws?username=${currentUser.username}`);
+            ws = new WebSocket(`wss://${window.location.host}/ws?username=${currentUser.username}`);
 
             ws.onopen = function() {
                 if (currentRoom && currentRoom.RoomName) {
