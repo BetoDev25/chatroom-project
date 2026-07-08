@@ -1,6 +1,9 @@
-# Go Chat Project
+# Rooms to Chat
 
 A web app where you can chat with people online and make friends.
+https://go-chat.duckdns.org/
+
+
 
 ## Features
 

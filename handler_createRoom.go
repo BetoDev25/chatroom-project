@@ -11,14 +11,14 @@ import (
 func (cfg *apiConfig) handlerCreateRoom(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("user_id").(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "User not authenticated")
+		respondWithError(w, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
 	roomNameStr := r.PathValue("roomName")
 
 	if valid, err := ValidateRoomName(roomNameStr); !valid {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -28,10 +28,10 @@ func (cfg *apiConfig) handlerCreateRoom(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			respondWithError(w, http.StatusConflict, "room already exists")
+			respondWithError(w, http.StatusConflict, "room already exists", err)
 			return
 		}
-		respondWithError(w, http.StatusInternalServerError, "could not create room")
+		respondWithError(w, http.StatusInternalServerError, "could not create room", err)
 		return
 	}
 

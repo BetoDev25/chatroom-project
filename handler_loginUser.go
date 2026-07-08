@@ -21,19 +21,19 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	input := params{}
 	err := decoder.Decode(&input)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode input")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode input", err)
 		return
 	}
 
 	user, err := cfg.db.GetUserByUsername(r.Context(), input.Username)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
 
 	isValid, err := auth.CheckPasswordHash(input.Password, user.HashedPassword)
 	if err != nil || !isValid {
-		respondWithError(w, http.StatusUnauthorized, "Incorrect username or password")
+		respondWithError(w, http.StatusUnauthorized, "Incorrect username or password", err)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: time.Now().Add(8 * time.Hour),
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create session")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create session", err)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	err = cookies.Write(w, *sessionCookie)
 	if err != nil {
 		log.Printf("Error setting cookie: %v", err)
-		respondWithError(w, http.StatusInternalServerError, "server error")
+		respondWithError(w, http.StatusInternalServerError, "server error", err)
 		return
 	}
 

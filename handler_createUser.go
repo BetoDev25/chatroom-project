@@ -30,22 +30,22 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	err := decoder.Decode(&input)
 	if err != nil {
 		fmt.Println("Decoding input error:", err)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode input")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode input", err)
 		return
 	}
 
 	if valid, err := ValidateUsername(input.Username); !valid {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 	if valid, err := ValidatePassword(input.Password); !valid {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
 	hashedPassword, err := auth.HashPassword(input.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "could not hash password")
+		respondWithError(w, http.StatusInternalServerError, "could not hash password", err)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		fmt.Println("Creating user error:", err)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
 	}
 

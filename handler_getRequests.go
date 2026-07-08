@@ -11,7 +11,7 @@ import (
 func (cfg *apiConfig) handlerGetRequests(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("user_id").(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "User not authenticated")
+		respondWithError(w, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 	status := r.PathValue("status")
@@ -26,7 +26,7 @@ func (cfg *apiConfig) handlerGetRequests(w http.ResponseWriter, r *http.Request)
 				respondWithJSON(w, http.StatusOK, []interface{}{})
 				return
 			}
-			respondWithError(w, http.StatusInternalServerError, "could not get friend requests")
+			respondWithError(w, http.StatusInternalServerError, "could not get friend requests", err)
 			return
 		}
 	} else if status == "accepted" {
@@ -36,7 +36,7 @@ func (cfg *apiConfig) handlerGetRequests(w http.ResponseWriter, r *http.Request)
 				respondWithJSON(w, http.StatusOK, []interface{}{})
 				return
 			}
-			respondWithError(w, http.StatusInternalServerError, "could not get friends")
+			respondWithError(w, http.StatusInternalServerError, "could not get friends", err)
 			return
 		}
 	}

@@ -15,13 +15,13 @@ func (cfg *apiConfig) handlerMe(w http.ResponseWriter, r *http.Request) {
 
 	sessionToken, err := cookies.Read(r, "session_token")
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Not authenticated")
+		respondWithError(w, http.StatusUnauthorized, "Not authenticated", err)
 		return
 	}
 
 	user, err := cfg.db.GetUserByCookie(r.Context(), sessionToken)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid or expired session")
+		respondWithError(w, http.StatusUnauthorized, "Invalid or expired session", err)
 		return
 	}
 

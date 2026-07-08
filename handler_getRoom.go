@@ -12,9 +12,9 @@ func (cfg *apiConfig) handlerGetRoom(w http.ResponseWriter, r *http.Request) {
 	room, err := cfg.db.GetRoomByName(r.Context(), roomNameStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			respondWithError(w, http.StatusNotFound, "room not found")
+			respondWithError(w, http.StatusNotFound, "room not found", err)
 		} else {
-			respondWithError(w, http.StatusUnauthorized, "could not find room name")
+			respondWithError(w, http.StatusUnauthorized, "could not find room name", err)
 		}
 		return
 	}

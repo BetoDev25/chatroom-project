@@ -15,7 +15,7 @@ func (cfg *apiConfig) handlerGetMessages(w http.ResponseWriter, r *http.Request)
 
 	roomID, err := uuid.Parse(roomIDStr)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid room ID format")
+		respondWithError(w, http.StatusBadRequest, "Invalid room ID format", err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerGetMessages(w http.ResponseWriter, r *http.Request)
 		if errors.Is(err, sql.ErrNoRows) {
 			respondWithJSON(w, http.StatusOK, []interface{}{})
 		} else {
-			respondWithError(w, http.StatusUnauthorized, "could not find room")
+			respondWithError(w, http.StatusUnauthorized, "could not find room", err)
 		}
 		return
 	}

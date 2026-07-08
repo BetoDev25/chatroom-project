@@ -11,7 +11,7 @@ import (
 func (cfg *apiConfig) handlerGetRooms(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("user_id").(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "User not authenticated")
+		respondWithError(w, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
@@ -20,7 +20,7 @@ func (cfg *apiConfig) handlerGetRooms(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondWithJSON(w, http.StatusOK, []interface{}{})
 		} else {
-			respondWithError(w, http.StatusUnauthorized, "could not find room")
+			respondWithError(w, http.StatusUnauthorized, "could not find room", err)
 		}
 		return
 	}

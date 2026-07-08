@@ -20,7 +20,7 @@ func (cfg *apiConfig) handlerCreateMessage(w http.ResponseWriter, r *http.Reques
 	input := params{}
 	err := decoder.Decode(&input)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldn't decode input")
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode input", err)
 		return
 	}
 
@@ -31,7 +31,7 @@ func (cfg *apiConfig) handlerCreateMessage(w http.ResponseWriter, r *http.Reques
 		MessageType: "string",
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't save message")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save message", err)
 		return
 	}
 

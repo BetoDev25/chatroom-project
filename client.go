@@ -89,9 +89,12 @@ func (c *Client) readPump() {
 				c.hub.broadcastPrivate(&msg)
 			}
 		case "message":
+			log.Printf("Received message from %s in room: %s", c.username, c.room)
 			if c.room != "" {
 				msg.Room = c.room
 				c.hub.broadcast <- &msg
+			} else {
+				log.Printf("Warning: message from %s has no room set", c.username)
 			}
 		}
 	}

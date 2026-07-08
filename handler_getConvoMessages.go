@@ -15,7 +15,7 @@ func (cfg *apiConfig) handlerGetConvoMessages(w http.ResponseWriter, r *http.Req
 
 	convoID, err := uuid.Parse(convoIDStr)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid convo ID format")
+		respondWithError(w, http.StatusBadRequest, "Invalid convo ID format", err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerGetConvoMessages(w http.ResponseWriter, r *http.Req
 		if errors.Is(err, sql.ErrNoRows) {
 			respondWithJSON(w, http.StatusOK, []interface{}{})
 		} else {
-			respondWithError(w, http.StatusUnauthorized, "could not find conversation")
+			respondWithError(w, http.StatusUnauthorized, "could not find conversation", err)
 		}
 		return
 	}

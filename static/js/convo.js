@@ -2,8 +2,8 @@
 
 let convoTabs = [];
 let activeConvoTabId = null;
-let currentConversation = null;
 let convoPage = 1;
+var currentConversation = null;
 const convoMessagesPerPage = 50;
 
 window.openConversation = async function(friend) {
@@ -38,6 +38,7 @@ window.openConversation = async function(friend) {
 };
 
 function addConvoTab(conversation, displayName) {
+    console.trace('addConvoTab called'); // Debug
     const convoId = conversation.ConversationID;
     
     if (convoTabs.find(t => t.ConversationID === convoId)) {
@@ -78,6 +79,7 @@ function addConvoTab(conversation, displayName) {
 }
 
 function switchConvoTab(convoId) {
+    console.trace('switchConvoTab called with convoId:', convoId); // Debug
     const tab = convoTabs.find(t => t.ConversationID === convoId);
     if (!tab) return;
 
@@ -97,7 +99,7 @@ function switchConvoTab(convoId) {
 
     activeConvoTabId = convoId;
     currentConversation = tab;
-    window.currentRoom = null;
+    currentRoom = null;
 
     // CLEAR room active state
     activeTabId = null;
@@ -144,14 +146,12 @@ function closeConvoTab(convoId) {
             // No more convo tabs - clear everything
             activeConvoTabId = null;
             currentConversation = null;
-            window.currentConversation = null;
             document.getElementById('messages').innerHTML = '';
-            
-            // Clear active convo state from localStorage
             localStorage.setItem('activeConvoTabId', null);
             
             // Check if there are room tabs to switch to
             if (tabs.length > 0) {
+                currentConversation = null;
                 switchTab(tabs[0].RoomID, false);
             }
         }
@@ -247,6 +247,13 @@ function sendConvoMessage() {
         return res.json();
     })
     .catch(err => console.error('Failed to archive:', err));
+    const messagesDiv = document.getElementById('messages');
+    if (messagesDiv) {
+        setTimeout(() => {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            console.log('Scrolled to bottom');
+        }, 50);
+    }
 }
 
 function handlePrivateMessage(msg) {
@@ -256,7 +263,7 @@ function handlePrivateMessage(msg) {
     const div = document.createElement('div');
     div.textContent = `${msg.username}: ${msg.content}`;
     messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    //messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function saveConvoTabs() {
@@ -299,7 +306,7 @@ function loadConvoTabs() {
     
     const savedActive = localStorage.getItem('activeConvoTabId');
     if (savedActive && convoTabs.find(t => t.ConversationID === savedActive)) {
-        window.currentRoom = null;
+        currentRoom = null;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 
         // Join the conversation when restoring

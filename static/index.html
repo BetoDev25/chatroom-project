@@ -93,13 +93,14 @@
     <script src="/static/js/convo.js"></script>
     
     <script>
+        var currentRoom = null;
         let tabs = [];
         let activeTabId = null;
         let ws;
 
         function connect() {
             if (!currentUser) return;
-            ws = new WebSocket(`wss://${window.location.host}/ws?username=${currentUser.username}`);
+            ws = new WebSocket(`ws://${window.location.host}/ws?username=${currentUser.username}`);
 
             ws.onopen = function() {
                 if (currentRoom && currentRoom.RoomName) {
@@ -187,7 +188,6 @@
             };
         }
 
-        let currentRoom = null;
         async function joinRoom(skipArchive = false, isCreation = false) {
             const roomName = document.getElementById('room').value;
             document.getElementById('room').value = '';
@@ -313,14 +313,15 @@
             const messagesDiv = document.getElementById('messages');
             setTimeout(() => {
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                console.log('Scrolled to bottom');
             }, 50);
         }
 
             let currentPage = 1;
             const messagesPerPage = 50;
             let isLoadingMessages = false;
-
             async function loadMessages(resetPage = true) {
+                console.log('loadMessages called, resetPage:', resetPage, 'currentPage:', currentPage); // Debug
                 if (!currentRoom) {
                     return;
                 }
@@ -333,17 +334,18 @@
                 }
 
                 const response = await fetch(`/api/messages/${currentRoom.RoomID}?page=${currentPage}&limit=${messagesPerPage}`);
-                
                 if (!response.ok) {
                     console.error('Failed to load messages');
                     return;
                 }
 
                 let messages = await response.json();
+                if (messages.length === 0) {
+                    return;
+                }
                 // Reverse to show oldest first (newest at bottom)
-                messages = messages.reverse();
-                
                 if (resetPage) {
+                    messages = messages.reverse();
                     messages.forEach(msg => {
                         const div = createMessageElement(msg);
                         messagesDiv.appendChild(div);
@@ -401,14 +403,19 @@
             document.getElementById('messages').addEventListener('scroll', function() {
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
-                    if (this.scrollTop < 50 && currentRoom && !isLoadingMessages) {
-                        console.log('Loading older messages, currentPage:', currentPage); // Debug
+                    if (this.scrollTop === 0 && currentConversation && !isLoadingMessages) {
+                        isLoadingMessages = true;
+                        loadConvoMessages(currentConversation.ConversationID, false).finally(() => {
+                            isLoadingMessages = false;
+                        });
+                    }
+                    if (this.scrollTop === 0 && currentRoom && !isLoadingMessages) {
                         isLoadingMessages = true;
                         loadMessages(false).finally(() => {
                             isLoadingMessages = false;
                         });
                     }
-                }, 200);
+                }, 300);
             });
 
         function addTab(roomData, save = true) {
@@ -449,7 +456,7 @@
             if (!room) return;
             
             activeTabId = roomId;
-            window.currentConversation = null;
+            currentConversation = null;
 
             // CLEAR convo active state
             activeConvoTabId = null;
@@ -464,6 +471,8 @@
             if (save) {
                 saveTabs();
             }
+            setTimeout(() => {
+            }, 100);
         }
 
         function closeTab(roomId) {
@@ -564,7 +573,7 @@
                 const convoExists = convoTabs.find(t => t.ConversationID === savedActiveConvo);
                 if (convoExists) {
                     // Set currentConversation before switching
-                    currentConversation = convoExists;
+                    //currentConversation = convoExists;
                     
                     if (ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({

@@ -146,8 +146,10 @@ func (h *Hub) removeFromRoom(client *Client, room string) {
 }
 
 func (h *Hub) broadcastToRoom(msg *Message) {
+	log.Printf("Broadcasting to room: %s", msg.Room)
 	clients, ok := h.rooms[msg.Room]
 	if !ok {
+		log.Printf("Room %s not found", msg.Room)
 		return
 	}
 

@@ -15,7 +15,7 @@ func (cfg *apiConfig) handlerCreatePrivMessage(w http.ResponseWriter, r *http.Re
 	}
 	userID, ok := r.Context().Value("user_id").(uuid.UUID)
 	if !ok {
-		respondWithError(w, http.StatusUnauthorized, "User not authenticated")
+		respondWithError(w, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
@@ -23,7 +23,7 @@ func (cfg *apiConfig) handlerCreatePrivMessage(w http.ResponseWriter, r *http.Re
 	input := params{}
 	err := decoder.Decode(&input)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldn't decode input")
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode input", err)
 		return
 	}
 
@@ -34,7 +34,7 @@ func (cfg *apiConfig) handlerCreatePrivMessage(w http.ResponseWriter, r *http.Re
 		MessageType:      "string",
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't save message")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save message", err)
 		return
 	}
 

@@ -15,12 +15,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func respondWithError(w http.ResponseWriter, code int, msg string) {
+func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 	type errorMsg struct {
-		Error string `json:"error"`
+		Message string `json:"message"`
+		Error   error  `json:"error"`
 	}
 	resp := errorMsg{
-		Error: msg,
+		Message: msg,
+		Error:   err,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	dat, err := json.Marshal(resp)

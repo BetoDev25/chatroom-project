@@ -19,7 +19,7 @@ func (cfg *apiConfig) handlerCreateFriendRequest(w http.ResponseWriter, r *http.
 	input := params{}
 	err := decoder.Decode(&input)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Couldn't decode input")
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode input", err)
 		return
 	}
 
@@ -29,9 +29,9 @@ func (cfg *apiConfig) handlerCreateFriendRequest(w http.ResponseWriter, r *http.
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			respondWithError(w, http.StatusConflict, "friend request already exists, or you are already friends with user")
+			respondWithError(w, http.StatusConflict, "friend request already exists, or you are already friends with user", err)
 		}
-		respondWithError(w, http.StatusInternalServerError, "Couldn't send friend request")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't send friend request", err)
 		return
 	}
 

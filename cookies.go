@@ -18,12 +18,12 @@ func (cfg *apiConfig) cookieHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, http.ErrNoCookie):
-			respondWithError(w, http.StatusBadRequest, "cookie not found")
+			respondWithError(w, http.StatusBadRequest, "cookie not found", err)
 		case errors.Is(err, cookies.ErrInvalidValue):
-			respondWithError(w, http.StatusBadRequest, "invalid cookie")
+			respondWithError(w, http.StatusBadRequest, "invalid cookie", err)
 		default:
 			log.Println(err)
-			respondWithError(w, http.StatusInternalServerError, "Error reading cookie")
+			respondWithError(w, http.StatusInternalServerError, "Error reading cookie", err)
 		}
 		return
 	}
@@ -49,7 +49,7 @@ func (cfg *apiConfig) setCookieHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := cookies.Write(w, *sessionCookie)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "server error")
+		respondWithError(w, http.StatusInternalServerError, "server error", err)
 		return
 	}
 
