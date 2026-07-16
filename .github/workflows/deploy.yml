@@ -24,9 +24,21 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "chat-app,static"
+          source: "chat-app,static, sql/schema"
           target: "/home/ec2-user/chatroom-project"
       
+        #migrations
+      - name: Run migrations
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/chatroom-project
+            export DB_URL="postgres://betochat:chat-with-beto25@go-chat-db.cszw62ie64kz.us-east-1.rds.amazonaws.com:5432/postgres?sslmode=require"
+            ~/go/bin/goose -dir sql/schema postgres "$DB_URL" up
+
       - name: Restart service
         uses: appleboy/ssh-action@v0.1.7
         with:

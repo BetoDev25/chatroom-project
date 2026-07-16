@@ -50,6 +50,43 @@ func (q *Queries) DeleteRoom(ctx context.Context, roomID uuid.UUID) error {
 	return err
 }
 
+const getPublicRooms = `-- name: GetPublicRooms :many
+SELECT room_id, owner_id, room_name, created_at, type, hashed_password
+FROM rooms
+WHERE room_name ILIKE $1::text || '%'
+ORDER BY room_name
+`
+
+func (q *Queries) GetPublicRooms(ctx context.Context, roomName string) ([]Room, error) {
+	rows, err := q.db.QueryContext(ctx, getPublicRooms, roomName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Room
+	for rows.Next() {
+		var i Room
+		if err := rows.Scan(
+			&i.RoomID,
+			&i.OwnerID,
+			&i.RoomName,
+			&i.CreatedAt,
+			&i.Type,
+			&i.HashedPassword,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRoomByName = `-- name: GetRoomByName :one
 SELECT room_id, owner_id, room_name, created_at, type, hashed_password
 FROM rooms

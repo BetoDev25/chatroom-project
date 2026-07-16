@@ -1,0 +1,15 @@
+<div id="publicRoomsPanel">
+    <div style="padding: 10px; border-bottom: 2px solid #ccc; display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: bold; font-size: 18px;">Public Rooms</span>
+        <div style="flex: 1; display: flex; align-items: center; gap: 5px; max-width: 300px;">
+            <input type="text" id="roomSearch" placeholder="Search rooms..." style="flex: 1; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <img src="/static/assets/search.png" alt="search" style="width: 16px; height: 16px; display: block;">
+            </button>
+        </div>
+    </div>
+    
+    <div id="publicRoomList" style="padding: 10px; overflow-y: auto; max-height: 300px;">
+        <!-- Rooms will be dynamically loaded here -->
+    </div>
+</div>
+<script src="/static/js/rooms.js"></script>

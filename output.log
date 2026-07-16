@@ -1,0 +1,6 @@
+2026/07/11 13:52:39 Loading env file: .env.dev
+2026/07/11 13:52:39 COOKIE_DOMAIN: 'localhost'
+2026/07/11 13:52:39 COOKIE_SECURE: 'false'
+2026/07/11 13:52:39 COOKIE_SAMESITE: 'Lax'
+2026/07/11 13:52:39 Starting server in development mode
+2026/07/11 13:52:39 DB_URL: postgres://postgres:postgres@localhost:5432/chatroom?sslmode=disable

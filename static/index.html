@@ -47,7 +47,7 @@
     </div>
     <!-- End of container code -->
 <!-- test line 1-->
-    <h1>Rooms to Chat 1.0.3</h1>
+    <h1>Rooms to Chat</h1>
     <h2 id="welcome"></h2>
     <div class="container">
         <div class="chat-section">
@@ -68,6 +68,13 @@
             </div>
             <!-- End of Convo tabs -->
             <div id="roomError" style="color: red; margin-top: 10px;"></div>
+            <!-- Public Rooms button next to Chat label -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <button onclick="showPublicRooms()" style="padding: 4px 8px; cursor: pointer; background: none; border: none;">
+                    <img src="/static/assets/home.png" alt="Public Rooms" style="width: 24px; height: 24px; display: block;">
+                </button>
+            </div>
+            <!-- End of public rooms -->
             <div id="messages"></div>
             <!-- Username dropdown -->
             <div id="userDropdown" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 4px; padding: 5px 0; min-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 2000;">
@@ -91,6 +98,7 @@
     <script src="/static/js/inbox.js"></script>
     <script src="/static/js/friends.js"></script>
     <script src="/static/js/convo.js"></script>
+    <script src="/static/js/rooms.js"></script>
     
     <script>
         var currentRoom = null;
@@ -100,7 +108,7 @@
 
         function connect() {
             if (!currentUser) return;
-            ws = new WebSocket(`wss://${window.location.host}/ws?username=${currentUser.username}`);
+            ws = new WebSocket(`ws://${window.location.host}/ws?username=${currentUser.username}`);
 
             ws.onopen = function() {
                 if (currentRoom && currentRoom.RoomName) {
@@ -492,10 +500,18 @@
                     switchTab(tabs[0].RoomID);
                 } else {
                     activeTabId = null;
+                    currentRoom = null;
+                    localStorage.removeItem('activeTabId');
+                    localStorage.removeItem('openTabs');
+                    localStorage.removeItem('lastRoom');
+                    localStorage.removeItem('lastRoomData');
                     document.getElementById('messages').innerHTML = '';
                 }
             }
             saveTabs();
+            if (currentRoom === null && currentConversation == null) {
+                loadPublicRooms();
+            }
         }
 
         function saveTabs() {
@@ -562,7 +578,7 @@
             
             // Restore active tab - CHECK ROOM FIRST
             const savedActiveRoom = localStorage.getItem('activeTabId');
-            if (savedActiveRoom && tabs.find(t => t.RoomID === savedActiveRoom)) {
+            if (savedActiveRoom && tabs.length > 0 && tabs.find(t => t.RoomID === savedActiveRoom)) {
                 switchTab(savedActiveRoom, false);
                 return;
             }
@@ -632,6 +648,7 @@
                 await loadFriendsPanel();
 
                 if (tabs.length === 0) {
+                    showPublicRooms()
                     const lastRoomName = localStorage.getItem('lastRoom');
                     
                     if (lastRoomName) {

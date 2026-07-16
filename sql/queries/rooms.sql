@@ -20,3 +20,9 @@ WHERE room_name = $1;
 SELECT *
 FROM rooms
 WHERE owner_id = $1;
+
+-- name: GetPublicRooms :many
+SELECT *
+FROM rooms
+WHERE room_name ILIKE sqlc.arg('room_name')::text || '%'
+ORDER BY room_name;
